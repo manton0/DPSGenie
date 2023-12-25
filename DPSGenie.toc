@@ -1,0 +1,13 @@
+## Interface: 30300
+## Title: DPSGenie
+## Notes: DPSGenie will help you perform your defined rotation to maximize your DPS!
+## Author: mazer (Discord: the_mazer)
+## Version: 0.1
+## SavedVariables: DPSGenieRotas
+## SavedVariablesPerCharacter: DPSGenieConfig
+
+embeds.xml
+
+DPSGenie.lua
+GUI\RotaEditor.lua
+GUI\SpellCapture.lua
