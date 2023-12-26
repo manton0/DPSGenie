@@ -8,6 +8,9 @@
 embeds.xml
 
 DPSGenie.lua
+GUI\Utils.lua
 GUI\RotaEditor.lua
+GUI\CodeEditor.lua
 GUI\SpellCapture.lua
 GUI\SpellButton.lua
+Core.lua

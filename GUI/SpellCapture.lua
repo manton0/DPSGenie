@@ -4,6 +4,7 @@ DPSGenie:Print("SpellCapture loaded!")
 
 local AceGUI = LibStub("AceGUI-3.0")
 local Captureframe
+local startButton, stopButton
 
 DPSGenie.spellSet = DPSGenie.spellSet or {}
 DPSGenie.buffList = DPSGenie.buffList or {}
@@ -13,21 +14,41 @@ function DPSGenie:showCapture()
     Captureframe:SetTitle("DPSGenie Spell Capture")
     --Captureframe:SetStatusText("AceGUI-3.0 Example Container Frame")
 
-    local button = AceGUI:Create("Button")
-    button:SetText("Start Capture")
-    button:SetWidth(200)
-    button:SetCallback("OnClick", function() DPSGenie:startSpellCapture() end)
-    Captureframe:AddChild(button)
+    startButton = AceGUI:Create("Button")
+    startButton:SetText("Start Capture")
+    startButton:SetWidth(200)
+    startButton:SetCallback("OnClick", function() DPSGenie:startSpellCapture() end)
+    Captureframe:AddChild(startButton)
+
+    stopButton = AceGUI:Create("Button")
+    stopButton:SetText("Stop Capture")
+    stopButton:SetWidth(200)
+    stopButton:SetCallback("OnClick", function() DPSGenie:stopSpellCapture() end)
+    stopButton:SetDisabled(true)
+    Captureframe:AddChild(stopButton)
 end
 
 function DPSGenie:startSpellCapture()
+    startButton:SetDisabled(true)
+    stopButton:SetDisabled(false)
     self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     DPSGenie:Print("Register COMBAT_LOG_EVENT_UNFILTERED...")
 end
 
 function DPSGenie:stopSpellCapture()
+    startButton:SetDisabled(false)
+    stopButton:SetDisabled(true)
     self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     DPSGenie:Print("Unregister COMBAT_LOG_EVENT_UNFILTERED...")
+end
+
+function DPSGenie:addSpellToCaptureList(spellId, spellName, spellIcon, spellType)
+    local label = AceGUI:Create("Label")
+    label:SetWidth(300)
+    label:SetImage(spellIcon)
+    label:SetImageSize(32, 32)
+    label:SetText(spellId .. " - " .. spellName .. " - " .. spellType)
+    Captureframe:AddChild(label)
 end
 
 function DPSGenie:COMBAT_LOG_EVENT_UNFILTERED(event, ...)
@@ -40,18 +61,14 @@ function DPSGenie:COMBAT_LOG_EVENT_UNFILTERED(event, ...)
             -- Wenn es sich um einen Spell handelt, füge ihn zum Set hinzu
             if event == "SPELL_DAMAGE" and not DPSGenie.spellSet[spellId] then
                 DPSGenie.spellSet[spellId] = {id = spellId, name = spellName, icon = spellIcon}
-                local label = AceGUI:Create("Label")
-                label:SetWidth(300)
-                label:SetImage(spellIcon)
-                label:SetImageSize(32, 32)
-                label:SetText(spellId .. " - " .. spellName)
-                Captureframe:AddChild(label)
+                DPSGenie:addSpellToCaptureList(spellId, spellName, spellIcon, "SPELL")
                 DPSGenie:SetFirstSuggestSpell(spellIcon)
             end
             -- Wenn es sich um eine Aura handelt, füge sie zur Buff-Liste hinzu
             if (event == "SPELL_AURA_APPLIED" or event == "SPELL_AURA_REFRESH") and not DPSGenie.buffList[spellId] then
                 local spellId, spellName, spellSchool, auraType = select(9, ...)
                 DPSGenie.buffList[spellId] = {id = spellId, name = spellName, icon = spellIcon, type = auraType}
+                DPSGenie:addSpellToCaptureList(spellId, spellName, spellIcon, string.upper(auraType))
                 -- Füge hier die Aktualisierung der Buff-Liste in der GUI hinzu, wenn nötig
             end
         end
