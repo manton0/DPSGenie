@@ -10,22 +10,32 @@ DPSGenie.spellSet = DPSGenie.spellSet or {}
 DPSGenie.buffList = DPSGenie.buffList or {}
 
 function DPSGenie:showCapture()
-    Captureframe = AceGUI:Create("Frame")
-    Captureframe:SetTitle("DPSGenie Spell Capture")
-    --Captureframe:SetStatusText("AceGUI-3.0 Example Container Frame")
+    if not Captureframe then
+        Captureframe = AceGUI:Create("Frame")
+        Captureframe:SetTitle("DPSGenie Spell Capture")
+        --Captureframe:SetStatusText("AceGUI-3.0 Example Container Frame")
+        --Captureframe:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
 
-    startButton = AceGUI:Create("Button")
-    startButton:SetText("Start Capture")
-    startButton:SetWidth(200)
-    startButton:SetCallback("OnClick", function() DPSGenie:startSpellCapture() end)
-    Captureframe:AddChild(startButton)
 
-    stopButton = AceGUI:Create("Button")
-    stopButton:SetText("Stop Capture")
-    stopButton:SetWidth(200)
-    stopButton:SetCallback("OnClick", function() DPSGenie:stopSpellCapture() end)
-    stopButton:SetDisabled(true)
-    Captureframe:AddChild(stopButton)
+        startButton = AceGUI:Create("Button")
+        startButton:SetText("Start Capture")
+        startButton:SetWidth(200)
+        startButton:SetCallback("OnClick", function() DPSGenie:startSpellCapture() end)
+        Captureframe:AddChild(startButton)
+
+        stopButton = AceGUI:Create("Button")
+        stopButton:SetText("Stop Capture")
+        stopButton:SetWidth(200)
+        stopButton:SetCallback("OnClick", function() DPSGenie:stopSpellCapture() end)
+        stopButton:SetDisabled(true)
+        Captureframe:AddChild(stopButton)
+    else
+        if Captureframe:IsVisible() then
+            Captureframe:Hide()
+        else
+            Captureframe:Show()
+        end
+    end
 end
 
 function DPSGenie:startSpellCapture()
