@@ -29,19 +29,19 @@ local spell = SPELLID
 local unit = "target"
 
 if GetUnitName(unit) and UnitExists(unit) then
-print("name: " .. GetUnitName(unit))
-print("exists: " .. UnitExists(unit))
+--print("name: " .. GetUnitName(unit))
+--print("exists: " .. UnitExists(unit))
 local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spell)
     usable, nomana = IsUsableSpell(name)
-    print("usable: " .. usable)
+    --print("usable: " .. usable)
     local start, duration, enable = GetSpellCooldown(name)
     if start == 0 and duration == 0 then
-        print("cooldown: no")
+        --print("cooldown: no")
     else
-        print("cooldown: " .. (start + duration - GetTime()) .. "s")
+        --print("cooldown: " .. (start + duration - GetTime()) .. "s")
     end
     local currentCharges, maxCharges, cooldownStart, cooldownDuration, chargeModRate = GetSpellCharges(spell)
-    print("inrange: " .. IsSpellInRange(name, unit))
+    --print("inrange: " .. IsSpellInRange(name, unit))
     if usable and IsSpellInRange(name, unit) ~= 0 and ((start == 0 and duration == 0) or (maxCharges > 0 and currentCharges > 0)) then
         DPSGenie:SetFirstSuggestSpell(icon);
         return true
@@ -60,13 +60,13 @@ function DPSGenie:runTree()
         local success
 
         for index, value in pairs(testTable) do
-            print("eval: " .. index .. " with spell: " .. value["Spell"])
+            --print("eval: " .. index .. " with spell: " .. value["Spell"])
             local preparedCode = string.gsub(baseEval, "SPELLID", value["Spell"])
             -- check for success and break
             success = DPSGenie:runCore(preparedCode)
             --print("success: " .. success)
             if success then
-                print("breaking, success")
+                --print("breaking, success")
                 break
             end
         end
