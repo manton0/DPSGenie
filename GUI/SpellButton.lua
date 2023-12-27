@@ -9,14 +9,24 @@ local AceGUI = LibStub("AceGUI-3.0")
 local FirstSpellFrame, SecondSpellFrame
 local DPSGenieButtonHolderFrame1, DPSGenieButtonHolderFrame2
 
-function DPSGenie:SetFirstSuggestSpell(path)
-    FirstSpellFrame:SetTexture(path)
-    FirstSpellFrame:SetAllPoints(true)
+function DPSGenie:SetFirstSuggestSpell(spellId)
+    if not spellId then
+        FirstSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+    else
+        local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellId)
+        FirstSpellFrame:SetTexture(icon)
+        FirstSpellFrame:SetAllPoints(true)
+    end
 end
 
-function DPSGenie:SetSecondSuggestSpell(path)
-    SecondSpellFrame:SetTexture(path)
-    SecondSpellFrame:SetAllPoints(true)
+function DPSGenie:SetSecondSuggestSpell(spellId)
+    if not spellId then
+        SecondSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+    else
+        local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellId)
+        SecondSpellFrame:SetTexture(icon)
+        SecondSpellFrame:SetAllPoints(true)
+    end
 end
 
 -- Erstelle das Hauptframe des Addons

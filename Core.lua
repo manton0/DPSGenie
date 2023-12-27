@@ -22,26 +22,18 @@ local testTable = {
 
 local baseEval = [[
 
-DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie"); 
-
 local inRange = 0
 local spell = SPELLID
 local unit = "target"
 
 if GetUnitName(unit) and UnitExists(unit) then
---print("name: " .. GetUnitName(unit))
---print("exists: " .. UnitExists(unit))
-local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spell)
+    local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spell)
     usable, nomana = IsUsableSpell(name)
-    --print("usable: " .. usable)
+
     local start, duration, enable = GetSpellCooldown(name)
-    if start == 0 and duration == 0 then
-        --print("cooldown: no")
-    else
-        --print("cooldown: " .. (start + duration - GetTime()) .. "s")
-    end
+
     local currentCharges, maxCharges, cooldownStart, cooldownDuration, chargeModRate = GetSpellCharges(spell)
-    --print("inrange: " .. IsSpellInRange(name, unit))
+
     if usable and IsSpellInRange(name, unit) ~= 0 and ((start == 0 and duration == 0) or (maxCharges > 0 and currentCharges > 0)) then
         DPSGenie:SetFirstSuggestSpell(icon);
         return true
@@ -49,6 +41,45 @@ local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = Ge
 end
 
 ]]
+
+
+function DPSGenie:runRotaTable()
+    local unit = "target"
+
+    if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) and UnitCanAttack("player", unit) then
+
+        local success = false
+
+        --table.sort(testTable)
+
+        for index, value in pairs(testTable) do
+ 
+            local spell = value["Spell"]
+
+            local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spell)
+            local usable, nomana = IsUsableSpell(name)
+            local start, duration, enable = GetSpellCooldown(name)
+            local currentCharges, maxCharges, cooldownStart, cooldownDuration, chargeModRate = GetSpellCharges(spell)
+
+            if usable and IsSpellInRange(name, unit) ~= 0 and ((start == 0 and duration == 0) or (maxCharges > 0 and currentCharges > 0)) then
+                DPSGenie:SetFirstSuggestSpell(spell);
+                success = true
+            end
+
+            if success then          
+                break
+            end
+        end
+
+        if not success then
+            DPSGenie:SetFirstSuggestSpell(false)
+        end
+
+    else
+        DPSGenie:SetFirstSuggestSpell(false)
+    end
+end
+
 
 function DPSGenie:runTree()
 
@@ -61,7 +92,16 @@ function DPSGenie:runTree()
 
         for index, value in pairs(testTable) do
             --print("eval: " .. index .. " with spell: " .. value["Spell"])
+
+
+            -- more checks here regarding spell cooldown etc
+
+
             local preparedCode = string.gsub(baseEval, "SPELLID", value["Spell"])
+            preparedCode = [[ DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie");  ]] .. preparedCode
+
+
+
             -- check for success and break
             success = DPSGenie:runCore(preparedCode)
             --print("success: " .. success)
@@ -96,5 +136,5 @@ end
 
 
 function DPSGenie:OnEnable()
-    self.testTimer = self:ScheduleRepeatingTimer("runTree", .250)
+    self.testTimer = self:ScheduleRepeatingTimer("runRotaTable", .250)
 end
