@@ -72,7 +72,7 @@ function DPSGenie:COMBAT_LOG_EVENT_UNFILTERED(event, ...)
             if event == "SPELL_DAMAGE" and not DPSGenie.spellSet[spellId] then
                 DPSGenie.spellSet[spellId] = {id = spellId, name = spellName, icon = spellIcon}
                 DPSGenie:addSpellToCaptureList(spellId, spellName, spellIcon, "SPELL")
-                DPSGenie:SetFirstSuggestSpell(spellIcon)
+                --DPSGenie:SetFirstSuggestSpell(spellIcon)
             end
             -- Wenn es sich um eine Aura handelt, füge sie zur Buff-Liste hinzu
             if (event == "SPELL_AURA_APPLIED" or event == "SPELL_AURA_REFRESH") and not DPSGenie.buffList[spellId] then

@@ -41,7 +41,7 @@ end
 local button1 = CreateButton(buttonFrame, "Capture", "DPSGenie:showCapture()")
 button1:SetPoint("LEFT", buttonFrame, "LEFT", 10, 0)
 
-local button2 = CreateButton(buttonFrame, "Button 2", "/befehl2")
+local button2 = CreateButton(buttonFrame, "Rota", "DPSGenie:showRotaBuilder()")
 button2:SetPoint("LEFT", buttonFrame, "LEFT", 80, 0)
 
 local button3 = CreateButton(buttonFrame, "Button 3", "/befehl3")
