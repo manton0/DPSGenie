@@ -8,6 +8,20 @@ local defaultRotas
 local customRotas
 
 
+function DPSGenie:showSpellPicker()
+    spellPickerFrame = AceGUI:Create("Window")
+    spellPickerFrame:SetTitle("DPSGenie Spell Picker")
+    spellPickerFrame:SetWidth(600)
+    spellPickerFrame:SetHeight(200)
+    spellPickerFrame:SetLayout("Flow")
+
+
+
+    spellPickerFrame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+    spellPickerFrame:Show()
+end
+
+
 function DPSGenie:showRotaBuilder()
     if not Rotaframe then
         DPSGenie:CreateRotaBuilder()
@@ -169,9 +183,14 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     titleEditBox:SetText(rotaData.description)
     groupScrollFrame:AddChild(titleEditBox)
 
-    local labelRotaHeader = AceGUI:Create("InlineGroup")
+    local labelRotaHeaderLabel = AceGUI:Create("Heading")
+    labelRotaHeaderLabel:SetFullWidth(true)
+    labelRotaHeaderLabel:SetText("Rotation Setup")
+    groupScrollFrame:AddChild(labelRotaHeaderLabel)
+
+    local labelRotaHeader = AceGUI:Create("SimpleGroup")
     labelRotaHeader:SetFullWidth(true)
-    labelRotaHeader:SetTitle("Spell Rotation")
+    --labelRotaHeader:SetTitle("Spell Rotation")
     groupScrollFrame:AddChild(labelRotaHeader)
 
 
@@ -207,19 +226,40 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                     currentConditionPartCompare:SetText("Compare: " .. vc.compare)
                     conditionPartHolder:AddChild(currentConditionPartCompare)
 
+
                     local currentConditionPartWhat = AceGUI:Create("Label")
                     currentConditionPartWhat:SetFullWidth(true)
-                    currentConditionPartWhat:SetText("What: " .. vc.what)
+                    if vc.what > 100 then
+                        local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vc.what)
+                        currentConditionPartWhat:SetText("What: " .. name .. " (ID: " .. vc.what .. ")")
+                    else
+                        currentConditionPartWhat:SetText("What: " .. vc.what)
+                    end
                     conditionPartHolder:AddChild(currentConditionPartWhat)
+
+                    local editButton = AceGUI:Create("Button")
+                    editButton:SetText("Edit")
+                    editButton:SetWidth(75)                  
+                    conditionPartHolder:AddChild(editButton)
 
                     rotaPartHolder:AddChild(conditionPartHolder)
                 end
+            else
+                local addConditionButton = AceGUI:Create("Button")
+                addConditionButton:SetText("Add Condition")
+                addConditionButton:SetWidth(150)                  
+                rotaPartHolder:AddChild(addConditionButton)
             end
 
             --should be called last
             labelRotaHeader:AddChild(rotaPartHolder)
         end
     end
+
+    local addSpellButton = AceGUI:Create("Button")
+    addSpellButton:SetText("Add Spell")
+    addSpellButton:SetWidth(150)                  
+    groupScrollFrame:AddChild(addSpellButton)
 
     --[[
     local mlCodeEdit = AceGUI:Create("MultiLineEditBox")

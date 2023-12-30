@@ -1,7 +1,6 @@
 DPSGenie = LibStub("AceAddon-3.0"):NewAddon("DPSGenie", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
 
 local optionsFrame
-local db
 
 local options = {
     name = "DPSGenie",
@@ -19,8 +18,6 @@ local options = {
             type = 'input',
             name = 'My Message',
             desc = 'The message for my addon',
-            set = 'SetMyMessage',
-            get = 'GetMyMessage',
         },
         showCapture = {
             type = "execute",
@@ -34,26 +31,17 @@ local options = {
 }
 
 
-function DPSGenie:GetMyMessage(info)
-    return db.profile.message
-end
-
-function DPSGenie:SetMyMessage(info, input)
-    print("set msg to: " .. input)
-    db.profile.message = input
-end
-
-
 LibStub("AceConfig-3.0"):RegisterOptionsTable("DPSGenie", options, {"dps", "dpsgenie"})
 optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("DPSGenie", "DPSGenie")
 
+local defaultSettings = {
+    profile = {
+        setting = true,
+    }
+}
+
 function DPSGenie:OnInitialize()
-    local defaults = {
-        profile = {
-          setting = true,
-        }
-      }
-    db = LibStub("AceDB-3.0"):New("DPSGenieDB", defaults, true)
+    self.db = LibStub("AceDB-3.0"):New("DPSGenieSettingsDB", defaultSettings)
 end
 
 function DPSGenie:OnEnable()
