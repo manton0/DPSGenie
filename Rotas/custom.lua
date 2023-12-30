@@ -22,6 +22,27 @@ db.global.customRotas =
         name = "Pala / Fire Tank",
         description = "Build for Pala / Fire Tank",
         icon = "Interface\\Icons\\spell_holy_blessingofprotection_red",
+        spells = {
+            [1] = {
+                spellId = 35395,
+
+            },
+            [2] = {
+                spellId = 19943,
+                conditions = {
+                    [1] = {
+                        pool = "playerBuffs",
+                        compare = "contains",
+                        what = 853489
+                    },
+                    [2] = {
+                        pool = "playerHP",
+                        compare = "less than",
+                        what = 80
+                    }
+                }
+            }
+        }
     },
 }
 

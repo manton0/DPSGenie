@@ -20,6 +20,10 @@ local testTable = {
     }
 }
 
+DPSGenie.settings = {
+    showOutOfRange = true,
+}
+
 local baseEval = [[
 
 local inRange = 0
@@ -60,9 +64,15 @@ function DPSGenie:runRotaTable()
             local usable, nomana = IsUsableSpell(name)
             local start, duration, enable = GetSpellCooldown(name)
             local currentCharges, maxCharges, cooldownStart, cooldownDuration, chargeModRate = GetSpellCharges(spell)
+            local spellInRange = IsSpellInRange(name, unit)
 
-            if usable and IsSpellInRange(name, unit) ~= 0 and ((start == 0 and duration == 0) or (maxCharges > 0 and currentCharges > 0)) then
-                DPSGenie:SetFirstSuggestSpell(spell);
+            local iconModifiers = {}
+            if spellInRange == 0 then
+                iconModifiers['vertexColor'] = {0.9, 0.5, 0.5, 0.7}
+            end
+
+            if usable and (spellInRange ~= 0 or DPSGenie.settings.showOutOfRange) and ((start == 0 and duration == 0) or (maxCharges > 0 and currentCharges > 0)) then
+                DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
                 success = true
             end
 
@@ -72,11 +82,11 @@ function DPSGenie:runRotaTable()
         end
 
         if not success then
-            DPSGenie:SetFirstSuggestSpell(false)
+            DPSGenie:SetFirstSuggestSpell(false, nil)
         end
 
     else
-        DPSGenie:SetFirstSuggestSpell(false)
+        DPSGenie:SetFirstSuggestSpell(false, nil)
     end
 end
 

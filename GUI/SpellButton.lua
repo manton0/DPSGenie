@@ -9,23 +9,36 @@ local AceGUI = LibStub("AceGUI-3.0")
 local FirstSpellFrame, SecondSpellFrame
 local DPSGenieButtonHolderFrame1, DPSGenieButtonHolderFrame2
 
-function DPSGenie:SetFirstSuggestSpell(spellId)
+function DPSGenie:SetFirstSuggestSpell(spellId, iconModifiers)
     if not spellId then
-        FirstSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+        FirstSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") 
+        FirstSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99)
     else
         local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellId)
         FirstSpellFrame:SetTexture(icon)
         FirstSpellFrame:SetAllPoints(true)
+        if iconModifiers and iconModifiers['vertexColor'] ~= nil then
+            FirstSpellFrame:SetVertexColor(unpack(iconModifiers['vertexColor']))
+        else
+            FirstSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99)
+        end
     end
+    --print(FirstSpellFrame:GetVertexColor())
 end
 
-function DPSGenie:SetSecondSuggestSpell(spellId)
+function DPSGenie:SetSecondSuggestSpell(spellId, iconModifiers)
     if not spellId then
         SecondSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+        SecondSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99) 
     else
         local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellId)
         SecondSpellFrame:SetTexture(icon)
         SecondSpellFrame:SetAllPoints(true)
+        if iconModifiers and iconModifiers['vertexColor'] ~= nil then
+            SecondSpellFrame:SetVertexColor(unpack(iconModifiers['vertexColor']))
+        else
+            SecondSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99)
+        end
     end
 end
 
