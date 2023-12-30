@@ -48,8 +48,12 @@ LibStub("AceConfig-3.0"):RegisterOptionsTable("DPSGenie", options, {"dps", "dpsg
 optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("DPSGenie", "DPSGenie")
 
 function DPSGenie:OnInitialize()
-    db = LibStub("AceDB-3.0"):New("DPSGenieDB")
-    --DPSGenie:showCapture()
+    local defaults = {
+        profile = {
+          setting = true,
+        }
+      }
+    db = LibStub("AceDB-3.0"):New("DPSGenieDB", defaults, true)
 end
 
 function DPSGenie:OnEnable()

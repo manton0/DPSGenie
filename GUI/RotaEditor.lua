@@ -5,6 +5,7 @@ DPSGenie:Print("RotaEditor loaded!")
 local AceGUI = LibStub("AceGUI-3.0")
 local Rotaframe
 local defaultRotas
+local customRotas
 
 
 function DPSGenie:showRotaBuilder()
@@ -22,6 +23,7 @@ end
 function DPSGenie:GetRotaList()
 
     defaultRotas = DPSGenie:GetDefaultRotas()
+    customRotas = DPSGenie:GetCustomRotas()
 
 	local tree = 
 	{ 
@@ -36,19 +38,15 @@ function DPSGenie:GetRotaList()
             icon = "Interface\\Icons\\Spell_chargepositive",
 		},
 		{
-			value = "Rotations",
-			text = "Rotations",
+			value = "defaultRotations",
+			text = "Default Rotations",
 			children = {
-				{
-					value = "example code 1",
-					text = "example code 1",
-					icon = "Interface\\Icons\\custom_t_nhance_rpg_icons_firerealm_border",
-				},
-				{
-					value = "example code 2",
-					text = "example code 2",
-                    icon = "Interface\\Icons\\inv_hammer_unique_sulfuras",
-				},
+			}
+		},
+        {
+			value = "customRotations",
+			text = "Custom Rotations",
+			children = {
 			}
 		},
 	}
@@ -58,11 +56,16 @@ function DPSGenie:GetRotaList()
         table.insert(tree[3].children, entry)
     end 
 
+    for k, v in pairs(customRotas) do
+        local entry = {value = v.name, text = v.name, icon = v.icon}
+        table.insert(tree[4].children, entry)
+    end 
+
 	return tree
 end
 
 function DPSGenie:CreateRotaBuilder()
-    Rotaframe = AceGUI:Create("Frame")
+    Rotaframe = AceGUI:Create("Window")
     Rotaframe:SetTitle("DPSGenie Rota Editor")
     Rotaframe:SetWidth(600)
     Rotaframe:SetHeight(525)
@@ -74,7 +77,7 @@ function DPSGenie:CreateRotaBuilder()
     rotaTree:SetTree(DPSGenie:GetRotaList())
     Rotaframe:AddChild(rotaTree)
 
-    rotaTree:SetCallback("OnGroupSelected", function(container, _, selected)
+    rotaTree:SetCallback("OnGroupSelected", function(container, arg1, selected)
         container:ReleaseChildren()
 
         if selected == "newRotation" then
@@ -87,20 +90,28 @@ function DPSGenie:CreateRotaBuilder()
             rotaTitle = strjoin("?", unpack(rotaTitle))
 
             if rotaTitle ~= "" then
-                DPSGenie:DrawRotaGroup(container, rotaTitle)
+                DPSGenie:DrawRotaGroup(container, rotaTitle, selected)
             end
         end
     end)
 
-rotaTree:SelectByPath("Rotations")
+    rotaTree:SelectByPath("defaultRotations")
+    rotaTree:SelectByPath("customRotations")
 end
 
 
 local testObjTable = {}
 
-function DPSGenie:DrawRotaGroup(group, rotaTitle)
+function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
 
-    group.rotaTitle = rotaTitle
+    local rotaData
+    if string.find(selected, "custom") then
+        rotaData = customRotas[rotaTitle]
+    else
+        rotaData = defaultRotas[rotaTitle]
+    end
+
+    --group.rotaTitle = rotaTitle
  
     -- Need to redraw again for when icon editbox/button are shown and hidden
     group:ReleaseChildren()
@@ -128,9 +139,10 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle)
     local titleEditBox = AceGUI:Create("EditBox")
     titleEditBox:SetFullWidth(true)
     titleEditBox:SetLabel("Title")
-    titleEditBox:SetText(group.rotaTitle)
+    titleEditBox:SetText(rotaData.name)
     groupScrollFrame:AddChild(titleEditBox)
  
+    --[[
     titleEditBox:SetCallback("OnEnterPressed", function(self)
         local success, err = DPSGenie:UpdateRotaTitle(group.rotaTitle, self:GetText())
  
@@ -149,4 +161,20 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle)
             group.rotaTitle = self:GetText()
         end
     end)
+    ]]--
+
+    local titleEditBox = AceGUI:Create("EditBox")
+    titleEditBox:SetFullWidth(true)
+    titleEditBox:SetLabel("Description")
+    titleEditBox:SetText(rotaData.description)
+    groupScrollFrame:AddChild(titleEditBox)
+
+    --[[
+    local mlCodeEdit = AceGUI:Create("MultiLineEditBox")
+    mlCodeEdit:SetFullWidth(true)
+    mlCodeEdit:SetHeight(400)
+    --mlCodeEdit:SetLayout("Fill")
+	mlCodeEdit:SetNumLines(30)
+    groupScrollFrame:AddChild(mlCodeEdit)
+    ]]--
 end

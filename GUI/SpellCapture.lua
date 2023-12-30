@@ -5,14 +5,21 @@ DPSGenie:Print("SpellCapture loaded!")
 local AceGUI = LibStub("AceGUI-3.0")
 local Captureframe
 local startButton, stopButton
+local spellScrollFrame, buffScrollFrame
 
 DPSGenie.spellSet = DPSGenie.spellSet or {}
 DPSGenie.buffList = DPSGenie.buffList or {}
 
+
+
+
+
 function DPSGenie:showCapture()
     if not Captureframe then
-        Captureframe = AceGUI:Create("Frame")
+        Captureframe = AceGUI:Create("Window")
         Captureframe:SetTitle("DPSGenie Spell Capture")
+        Captureframe:SetLayout("Flow")
+        Captureframe:SetWidth(800)
         --Captureframe:SetStatusText("AceGUI-3.0 Example Container Frame")
         --Captureframe:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
 
@@ -29,6 +36,24 @@ function DPSGenie:showCapture()
         stopButton:SetCallback("OnClick", function() DPSGenie:stopSpellCapture() end)
         stopButton:SetDisabled(true)
         Captureframe:AddChild(stopButton)
+
+        scrollContainer = AceGUI:Create("SimpleGroup") -- "InlineGroup" is also good
+        scrollContainer:SetFullWidth(true)
+        scrollContainer:SetHeight(Captureframe.frame:GetHeight() - 100)
+        scrollContainer:SetLayout("Fill") -- important!
+
+        Captureframe:AddChild(scrollContainer)
+
+        spellScrollFrame = AceGUI:Create("ScrollFrame")
+        spellScrollFrame:SetLayout("Flow") -- probably?
+        spellScrollFrame:SetWidth(350)
+        scrollContainer:AddChild(spellScrollFrame)
+
+        buffScrollFrame = AceGUI:Create("ScrollFrame")
+        buffScrollFrame:SetLayout("Flow") -- probably?
+        buffScrollFrame:SetWidth(350)
+        scrollContainer:AddChild(buffScrollFrame)
+
     else
         if Captureframe:IsVisible() then
             Captureframe:Hide()
@@ -53,12 +78,25 @@ function DPSGenie:stopSpellCapture()
 end
 
 function DPSGenie:addSpellToCaptureList(spellId, spellName, spellIcon, spellType)
-    local label = AceGUI:Create("Label")
+    local label = AceGUI:Create("InteractiveLabel")
     label:SetWidth(300)
     label:SetImage(spellIcon)
     label:SetImageSize(32, 32)
     label:SetText(spellId .. " - " .. spellName .. " - " .. spellType)
-    Captureframe:AddChild(label)
+    label:SetCallback("OnEnter", function(widget) 
+        GameTooltip:SetOwner(label.frame, "ANCHOR_LEFT") -- Positioniere den Tooltip rechts vom Frame
+        GameTooltip:SetHyperlink("spell:" .. spellId) -- Setze den Spell-Link im Tooltip
+        GameTooltip:Show()
+    end)
+    label:SetCallback("OnLeave", function(widget) 
+        GameTooltip:Hide()
+    end)
+
+    if spellType == "SPELL" then
+        spellScrollFrame:AddChild(label)
+    else
+        buffScrollFrame:AddChild(label)
+    end
 end
 
 function DPSGenie:COMBAT_LOG_EVENT_UNFILTERED(event, ...)
