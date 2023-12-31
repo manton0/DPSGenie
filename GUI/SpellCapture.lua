@@ -11,9 +11,6 @@ DPSGenie.spellSet = DPSGenie.spellSet or {}
 DPSGenie.buffList = DPSGenie.buffList or {}
 
 
-
-
-
 function DPSGenie:showCapture()
     if not Captureframe then
         Captureframe = AceGUI:Create("Window")
@@ -45,13 +42,13 @@ function DPSGenie:showCapture()
         Captureframe:AddChild(scrollContainer)
 
         spellScrollFrame = AceGUI:Create("ScrollFrame")
-        spellScrollFrame:SetLayout("Flow") -- probably?
-        spellScrollFrame:SetWidth(350)
+        spellScrollFrame:SetLayout("List") -- probably?
+        spellScrollFrame:SetWidth(175)
         scrollContainer:AddChild(spellScrollFrame)
 
         buffScrollFrame = AceGUI:Create("ScrollFrame")
-        buffScrollFrame:SetLayout("Flow") -- probably?
-        buffScrollFrame:SetWidth(350)
+        buffScrollFrame:SetLayout("List") -- probably?
+        buffScrollFrame:SetWidth(175)
         scrollContainer:AddChild(buffScrollFrame)
 
     else
@@ -77,14 +74,22 @@ function DPSGenie:stopSpellCapture()
     DPSGenie:Print("Unregister COMBAT_LOG_EVENT_UNFILTERED...")
 end
 
+
 function DPSGenie:addSpellToCaptureList(spellId, spellName, spellIcon, spellType)
+
+    local prefix = "";
+    local spellBookId = FindSpellBookSlotByID(spellId)
+    if spellBookId then
+        prefix = "SB "
+    end
+
     local label = AceGUI:Create("InteractiveLabel")
     label:SetWidth(300)
     label:SetImage(spellIcon)
     label:SetImageSize(32, 32)
-    label:SetText(spellId .. " - " .. spellName .. " - " .. spellType)
+    label:SetText(prefix .. spellId .. " - " .. spellName .. " - " .. spellType)
     label:SetCallback("OnEnter", function(widget) 
-        GameTooltip:SetOwner(label.frame, "ANCHOR_LEFT") -- Positioniere den Tooltip rechts vom Frame
+        GameTooltip:SetOwner(label.frame, "ANCHOR_CURSOR") -- Positioniere den Tooltip rechts vom Frame
         GameTooltip:SetHyperlink("spell:" .. spellId) -- Setze den Spell-Link im Tooltip
         GameTooltip:Show()
     end)
@@ -92,6 +97,12 @@ function DPSGenie:addSpellToCaptureList(spellId, spellName, spellIcon, spellType
         GameTooltip:Hide()
     end)
 
+    if spellBookId then
+        label:SetCallback("OnClick", function(widget) 
+            PickupSpell(spellBookId)
+        end)
+    end
+    
     if spellType == "SPELL" then
         spellScrollFrame:AddChild(label)
     else

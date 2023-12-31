@@ -18,6 +18,7 @@ function DPSGenie:SetFewCustomRotas()
             name = "Test 1",
             description = "Build for the lulz", 
             icon = "Interface\\Icons\\ability_paladin_righteousvengeance",
+            spells = {} 
         },
         ["Pala / Fire Tank"] =
         {
@@ -27,7 +28,7 @@ function DPSGenie:SetFewCustomRotas()
             spells = {
                 [1] = {
                     spellId = 35395,
-
+                    conditions = {},
                 },
                 [2] = {
                     spellId = 19943,
@@ -51,4 +52,8 @@ end
 
 function DPSGenie:GetCustomRotas()
     return self.db.global.customRotas
+end
+
+function DPSGenie:SaveCustomRota(rota, data)
+    self.db.global.customRotas[rota] = data
 end

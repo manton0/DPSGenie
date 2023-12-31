@@ -3,22 +3,112 @@ DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 DPSGenie:Print("RotaEditor loaded!")
 
 local AceGUI = LibStub("AceGUI-3.0")
-local Rotaframe
+local Rotaframe, rotaTree
 local defaultRotas
 local customRotas
 
 
-function DPSGenie:showSpellPicker()
-    spellPickerFrame = AceGUI:Create("Window")
+function DPSGenie:showAllPicker()
+    DPSGenie:showSpellPicker("internal test")
+end
+
+function DPSGenie:showSpellPicker(origin)
+    local spellPickerFrame = AceGUI:Create("Window")
+    spellPickerFrame:SetPoint("TOPLEFT", Rotaframe.frame, "TOPRIGHT")
     spellPickerFrame:SetTitle("DPSGenie Spell Picker")
-    spellPickerFrame:SetWidth(600)
+    spellPickerFrame:SetWidth(300)
     spellPickerFrame:SetHeight(200)
-    spellPickerFrame:SetLayout("Flow")
+    spellPickerFrame:SetLayout("List")
+
+    local templist = {}
+       -- Iteriere über alle Zaubersprüche im Buch des Spielers
+    for i = 1, MAX_SKILLLINE_TABS do
+        local name, texture, offset, numSpells = GetSpellTabInfo(i)
+        
+        for j = offset + 1, offset + numSpells do
+        spellLink, tradeLink = GetSpellLink(j, BOOKTYPE_SPELL)
+        usable, nomana = IsUsableSpell(j, BOOKTYPE_SPELL)
+        isPassive = IsPassiveSpell(j, BOOKTYPE_SPELL);
+        if spellLink and usable and not isPassive then
+            local spellID = tonumber(string.match(spellLink, "spell:(%d+)"))
+            local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(spellID)
+            templist[name] = spellID
+            --print(spellID)
+        end
+        end
+    end
+
+    --table.sort(templist)
+
+    local list = {}
+    for k, v in pairs(templist) do
+        list[v] = k
+    end 
 
 
+    local addSpellLabel = AceGUI:Create("Label")
+    addSpellLabel:SetFullWidth(true)
+    addSpellLabel:SetText("Add spell to: " .. origin)
 
+    local label = AceGUI:Create("InteractiveLabel")
+    label:SetWidth(300)
+
+    local selectedSpell
+
+    local spellPickerDropdown = AceGUI:Create("Dropdown")
+    spellPickerDropdown:SetList(list)
+    spellPickerDropdown:SetLabel("Spell Picker")
+    spellPickerDropdown:SetFullWidth()
+    spellPickerDropdown:SetHeight(75)
+    spellPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
+        local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(key)
+        selectedSpell = key
+        label:SetImage(icon)
+        label:SetImageSize(32, 32)
+        label:SetText(name)
+        label:SetCallback("OnEnter", function(widget) 
+            GameTooltip:SetOwner(label.frame, "ANCHOR_CURSOR") -- Positioniere den Tooltip rechts vom Frame
+            GameTooltip:SetHyperlink("spell:" .. key) -- Setze den Spell-Link im Tooltip
+            GameTooltip:Show()
+        end)
+        label:SetCallback("OnLeave", function(widget) 
+            GameTooltip:Hide()
+        end)
+    end)
+
+    local buttonsContainer = AceGUI:Create("SimpleGroup")
+    buttonsContainer:SetFullWidth(true)
+    buttonsContainer:SetFullHeight(true)
+    buttonsContainer:SetLayout("Flow")
+
+    local saveButton = AceGUI:Create("Button")
+    saveButton:SetText("Save")
+    saveButton:SetWidth(75) 
+    saveButton:SetCallback("OnClick", function(widget) 
+        DPSGenie:addSpellToRota(origin, selectedSpell)
+    end)                 
+    buttonsContainer:AddChild(saveButton)
+
+    local cancelButton = AceGUI:Create("Button")
+    cancelButton:SetText("Cancel")
+    cancelButton:SetWidth(75)                  
+    buttonsContainer:AddChild(cancelButton)
+
+    spellPickerFrame:AddChild(addSpellLabel)
+    spellPickerFrame:AddChild(spellPickerDropdown)
+    spellPickerFrame:AddChild(label)
+    spellPickerFrame:AddChild(buttonsContainer)
+    
     spellPickerFrame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
     spellPickerFrame:Show()
+end
+
+
+function DPSGenie:addSpellToRota(rota, spell)
+    --print("adding " .. spell .. " to " .. rota)
+    table.insert(customRotas[rota].spells, {spellId = spell, conditions = {}})
+    DPSGenie:SaveCustomRota(rota, customRotas[rota])
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
 end
 
 
@@ -85,9 +175,10 @@ function DPSGenie:CreateRotaBuilder()
     Rotaframe:SetHeight(525)
     Rotaframe:SetLayout("Fill")
 
-    local rotaTree = AceGUI:Create("TreeGroup")
+    rotaTree = AceGUI:Create("TreeGroup")
     rotaTree:SetFullHeight(true)
     rotaTree:SetLayout("Flow")
+    rotaTree:EnableButtonTooltips(false)
     rotaTree:SetTree(DPSGenie:GetRotaList())
     Rotaframe:AddChild(rotaTree)
 
@@ -258,7 +349,11 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
 
     local addSpellButton = AceGUI:Create("Button")
     addSpellButton:SetText("Add Spell")
-    addSpellButton:SetWidth(150)                  
+    addSpellButton:SetWidth(150)              
+    addSpellButton:SetCallback("OnClick", function(widget) 
+        DPSGenie:showSpellPicker(rotaTitle, selected)
+    end)   
+
     groupScrollFrame:AddChild(addSpellButton)
 
     --[[
