@@ -47,18 +47,30 @@ end
 ]]
 
 
-function DPSGenie:runRotaTable()
-    local unit = "target"
+local acitveRota
 
-    if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) and UnitCanAttack("player", unit) then
+function DPSGenie:SetActiveRota(rotaTable)
+    acitveRota = rotaTable
+    DPSGenie:SaveSettingToProfile("activeRota", rotaTable)
+end
+
+function DPSGenie:GetActiveRota()
+    return acitveRota
+end
+
+
+function DPSGenie:runRotaTable()
+
+    local unit = "target"
+    if acitveRota then
 
         local success = false
 
         --table.sort(testTable)
 
-        for index, value in pairs(testTable) do
+        for index, value in pairs(acitveRota.spells) do
  
-            local spell = value["Spell"]
+            local spell = value["spellId"]
 
             local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spell)
             local usable, nomana = IsUsableSpell(name)
@@ -71,9 +83,13 @@ function DPSGenie:runRotaTable()
                 iconModifiers['vertexColor'] = {0.9, 0.5, 0.5, 0.7}
             end
 
-            if usable and (spellInRange ~= 0 or DPSGenie.settings.showOutOfRange) and ((start == 0 and duration == 0) or (maxCharges > 0 and currentCharges > 0)) then
-                DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
-                success = true
+            -- UnitCanAttack("player", unit) if harmfull spell
+            -- helpfulspell unit = player
+            if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) then
+                if usable and (spellInRange ~= 0 or DPSGenie.settings.showOutOfRange) and ((start == 0 and duration == 0) or (maxCharges > 0 and currentCharges > 0)) then
+                    DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
+                    success = true
+                end
             end
 
             if success then          
@@ -147,4 +163,8 @@ end
 
 function DPSGenie:OnEnable()
     self.testTimer = self:ScheduleRepeatingTimer("runRotaTable", .250)
+    local rota = DPSGenie:LoadSettingFromProfile("activeRota")
+    if rota then
+        DPSGenie:SetActiveRota(rota)
+    end
 end

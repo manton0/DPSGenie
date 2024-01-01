@@ -44,6 +44,14 @@ function DPSGenie:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("DPSGenieSettingsDB", defaultSettings)
 end
 
+function DPSGenie:SaveSettingToProfile(setting, value)
+    self.db.char[setting] = value;
+end
+
+function DPSGenie:LoadSettingFromProfile(setting)
+    return self.db.char[setting];
+end
+
 function DPSGenie:OnEnable()
     
 end

@@ -6,19 +6,179 @@ local AceGUI = LibStub("AceGUI-3.0")
 local Rotaframe, rotaTree
 local defaultRotas
 local customRotas
+local conditionPickerFrame, spellPickerFrame
+
+
+StaticPopupDialogs["CONFIRM_DELETE_SPELL"] = {
+    text = "Do you want to delete the Spell %s?",
+    button1 = "Yes",
+    button2 = "No",
+    OnAccept = function (self, data, data2)
+        --print("deleting " .. data .. " from " .. data2)
+        DPSGenie:removeSpellFromRota(data2, data)
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+local conditionsUnit = {
+    "Player",
+    "Target",
+}
+
+local conditionsSubjects = {
+    "Buffs",
+    "Debuffs",
+    "Health",
+    "Mana",
+    "Combopoints",
+}
+
+local conditionsComparer = {
+    "contains",
+    "more than",
+    "less than",
+    "equals",
+}
 
 
 function DPSGenie:showAllPicker()
-    DPSGenie:showSpellPicker("internal test")
+    --DPSGenie:showSpellPicker("internal test")
 end
 
-function DPSGenie:showSpellPicker(origin)
-    local spellPickerFrame = AceGUI:Create("Window")
+
+function DPSGenie:dumpTable(o)
+    if type(o) == 'table' then
+       local s = '{ '
+       for k,v in pairs(o) do
+          if type(k) ~= 'number' then k = '"'..k..'"' end
+          s = s .. '['..k..'] = ' .. DPSGenie:dumpTable(v) .. ','
+       end
+       return s .. '} '
+    else
+       return tostring(o)
+    end
+ end
+
+function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
+
+    local baseConditon = {
+        unit,
+        subject,
+        comparer,
+        compare_value,
+        search
+    }
+
+    conditionPickerFrame = AceGUI:Create("Window")
+    conditionPickerFrame:SetPoint("TOPLEFT", Rotaframe.frame, "TOPRIGHT")
+    conditionPickerFrame:SetTitle("DPSGenie Condition Picker")
+    conditionPickerFrame:SetWidth(300)
+    conditionPickerFrame:SetHeight(400)
+    conditionPickerFrame:SetLayout("Flow")
+
+    local addConditionLabel = AceGUI:Create("Label")
+    addConditionLabel:SetFullWidth(true)
+    addConditionLabel:SetText("Add Condition to: " .. rotaTitle .. " Spell: " .. rotaSpell)
+
+    local unitPickerDropdown = AceGUI:Create("Dropdown")
+    unitPickerDropdown:SetList(conditionsUnit)
+    unitPickerDropdown:SetLabel("Unit Picker")
+    unitPickerDropdown:SetFullWidth()
+    unitPickerDropdown:SetHeight(75)
+    unitPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
+        --print("unit: " .. conditionsUnit[key])
+        baseConditon.unit = conditionsUnit[key]
+    end)
+
+    local subjectPickerDropdown = AceGUI:Create("Dropdown")
+    subjectPickerDropdown:SetList(conditionsSubjects)
+    subjectPickerDropdown:SetLabel("Subject Picker")
+    subjectPickerDropdown:SetFullWidth()
+    subjectPickerDropdown:SetHeight(75)
+    subjectPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
+        --print("subject: " .. conditionsSubjects[key])
+        baseConditon.subject = conditionsSubjects[key]
+    end)
+
+    local comparerPickerDropdown = AceGUI:Create("Dropdown")
+    comparerPickerDropdown:SetList(conditionsComparer)
+    comparerPickerDropdown:SetLabel("Comparer Picker")
+    comparerPickerDropdown:SetFullWidth()
+    comparerPickerDropdown:SetHeight(75)
+    comparerPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
+        --print("comparer: " .. conditionsComparer[key])
+        baseConditon.comparer = conditionsComparer[key]
+    end)
+
+    local searchValue = AceGUI:Create("EditBox")
+    searchValue:SetFullWidth(true)
+    searchValue:SetLabel("Search: ")
+    searchValue:DisableButton(true)
+
+    local buttonsContainer = AceGUI:Create("SimpleGroup")
+    buttonsContainer:SetFullWidth(true)
+    buttonsContainer:SetFullHeight(true)
+    buttonsContainer:SetLayout("Flow")
+
+    local saveButton = AceGUI:Create("Button")
+    saveButton:SetText("Save")
+    saveButton:SetWidth(75) 
+    saveButton:SetCallback("OnClick", function(widget) 
+        --AceGUI:Release(widget.parent.parent)
+        baseConditon.search = searchValue:GetText()
+        --print("add condition to " .. rotaTitle .. " Spell " .. rotaSpell)
+        --print(DPSGenie:dumpTable(baseConditon))
+        DPSGenie:addConditionToSpell(rotaTitle, rotaSpell, baseConditon)
+
+    end)                 
+    buttonsContainer:AddChild(saveButton)
+
+    local cancelButton = AceGUI:Create("Button")
+    cancelButton:SetText("Cancel")
+    cancelButton:SetWidth(75)   
+    cancelButton:SetCallback("OnClick", function(widget) 
+        AceGUI:Release(widget.parent.parent)
+    end)                
+    buttonsContainer:AddChild(cancelButton)
+
+    conditionPickerFrame:AddChild(addConditionLabel)
+    conditionPickerFrame:AddChild(unitPickerDropdown)
+    conditionPickerFrame:AddChild(subjectPickerDropdown)
+    conditionPickerFrame:AddChild(comparerPickerDropdown)
+    conditionPickerFrame:AddChild(searchValue)
+    conditionPickerFrame:AddChild(buttonsContainer)
+    
+    conditionPickerFrame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+    conditionPickerFrame:Show()
+
+end
+
+function DPSGenie:showSpellPicker(rotaTitle)
+    spellPickerFrame = AceGUI:Create("Window")
     spellPickerFrame:SetPoint("TOPLEFT", Rotaframe.frame, "TOPRIGHT")
     spellPickerFrame:SetTitle("DPSGenie Spell Picker")
     spellPickerFrame:SetWidth(300)
     spellPickerFrame:SetHeight(200)
     spellPickerFrame:SetLayout("List")
+
+    --TODO: setting the frame unmovable will trigger an ace error. why you no sticky??
+    --[[
+    spellPickerFrame.frame:SetMovable(false)
+    spellPickerFrame.frame:EnableMouse(true)
+    spellPickerFrame.frame:RegisterForDrag()
+    spellPickerFrame.frame:SetScript("OnDragStart", function(self)
+        self:StopMovingOrSizing()
+        return
+    end)
+    spellPickerFrame.frame:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        return
+    end)
+
+    ]]--
 
     local templist = {}
        -- Iteriere über alle Zaubersprüche im Buch des Spielers
@@ -48,7 +208,7 @@ function DPSGenie:showSpellPicker(origin)
 
     local addSpellLabel = AceGUI:Create("Label")
     addSpellLabel:SetFullWidth(true)
-    addSpellLabel:SetText("Add spell to: " .. origin)
+    addSpellLabel:SetText("Add spell to: " .. rotaTitle)
 
     local label = AceGUI:Create("InteractiveLabel")
     label:SetWidth(300)
@@ -85,13 +245,17 @@ function DPSGenie:showSpellPicker(origin)
     saveButton:SetText("Save")
     saveButton:SetWidth(75) 
     saveButton:SetCallback("OnClick", function(widget) 
-        DPSGenie:addSpellToRota(origin, selectedSpell)
+        DPSGenie:addSpellToRota(rotaTitle, selectedSpell)
+        AceGUI:Release(widget.parent.parent)
     end)                 
     buttonsContainer:AddChild(saveButton)
 
     local cancelButton = AceGUI:Create("Button")
     cancelButton:SetText("Cancel")
-    cancelButton:SetWidth(75)                  
+    cancelButton:SetWidth(75)       
+    cancelButton:SetCallback("OnClick", function(widget) 
+        AceGUI:Release(widget.parent.parent)
+    end)           
     buttonsContainer:AddChild(cancelButton)
 
     spellPickerFrame:AddChild(addSpellLabel)
@@ -110,6 +274,19 @@ function DPSGenie:addSpellToRota(rota, spell)
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
     DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
 end
+
+function DPSGenie:addConditionToSpell(rotaTitle, rotaSpell, condition)
+    table.insert(customRotas[rotaTitle]["spells"][rotaSpell]["conditions"], condition)
+    DPSGenie:SaveCustomRota(rotaTitle, customRotas[rotaTitle])
+    DPSGenie:DrawRotaGroup(rotaTree, rotaTitle, "custom")
+end
+
+function DPSGenie:removeSpellFromRota(rota, index)
+    table.remove(customRotas[rota].spells, index)
+    DPSGenie:SaveCustomRota(rota, customRotas[rota])
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+end
+
 
 
 function DPSGenie:showRotaBuilder()
@@ -274,6 +451,14 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     titleEditBox:SetText(rotaData.description)
     groupScrollFrame:AddChild(titleEditBox)
 
+    local useRotaButton = AceGUI:Create("Button")
+    useRotaButton:SetText("Use this Rota")
+    useRotaButton:SetWidth(150) 
+    useRotaButton:SetCallback("OnClick", function(widget) 
+        DPSGenie:SetActiveRota(rotaData)
+    end)                 
+    groupScrollFrame:AddChild(useRotaButton)
+
     local labelRotaHeaderLabel = AceGUI:Create("Heading")
     labelRotaHeaderLabel:SetFullWidth(true)
     labelRotaHeaderLabel:SetText("Rotation Setup")
@@ -307,26 +492,37 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                     conditionPartHolder:SetTitle(kc .. ". Condition")
                     conditionPartHolder:SetFullWidth(true)
                     
-                    local currentConditionPartPool = AceGUI:Create("Label")
-                    currentConditionPartPool:SetFullWidth(true)
-                    currentConditionPartPool:SetText("Pool: " .. vc.pool)
-                    conditionPartHolder:AddChild(currentConditionPartPool)
+                    local currentConditionPartUnit = AceGUI:Create("Label")
+                    currentConditionPartUnit:SetFullWidth(true)
+                    currentConditionPartUnit:SetText("\124cFF00FF00Unit:\124r " .. vc.unit)
+                    conditionPartHolder:AddChild(currentConditionPartUnit)
 
-                    local currentConditionPartCompare = AceGUI:Create("Label")
-                    currentConditionPartCompare:SetFullWidth(true)
-                    currentConditionPartCompare:SetText("Compare: " .. vc.compare)
-                    conditionPartHolder:AddChild(currentConditionPartCompare)
+                    local currentConditionPartSubject = AceGUI:Create("Label")
+                    currentConditionPartSubject:SetFullWidth(true)
+                    currentConditionPartSubject:SetText("\124cFF00FF00Subject:\124r " .. vc.subject)
+                    conditionPartHolder:AddChild(currentConditionPartSubject)
 
+                    local currentConditionPartComparer = AceGUI:Create("Label")
+                    currentConditionPartComparer:SetFullWidth(true)
+                    currentConditionPartComparer:SetText("\124cFF00FF00Comparer:\124r " .. vc.comparer)
+                    conditionPartHolder:AddChild(currentConditionPartComparer)
 
-                    local currentConditionPartWhat = AceGUI:Create("Label")
-                    currentConditionPartWhat:SetFullWidth(true)
-                    if vc.what > 100 then
-                        local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vc.what)
-                        currentConditionPartWhat:SetText("What: " .. name .. " (ID: " .. vc.what .. ")")
-                    else
-                        currentConditionPartWhat:SetText("What: " .. vc.what)
+                    if vc.compare_value then
+                        local currentConditionPartCompareValue = AceGUI:Create("Label")
+                        currentConditionPartCompareValue:SetFullWidth(true)
+                        currentConditionPartCompareValue:SetText("\124cFF00FF00Compare Value:\124r " .. vc.compare_value)
+                        conditionPartHolder:AddChild(currentConditionPartCompareValue)
                     end
-                    conditionPartHolder:AddChild(currentConditionPartWhat)
+
+                    local currentConditionPartSearch = AceGUI:Create("Label")
+                    currentConditionPartSearch:SetFullWidth(true)
+                    if tonumber(vc.search) > 100 then
+                        local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vc.search)
+                        currentConditionPartSearch:SetText("\124cFF00FF00Search:\124r " .. name .. " (ID: " .. vc.search .. ")")
+                    else
+                        currentConditionPartSearch:SetText("\124cFF00FF00Search:\124r " .. vc.search)
+                    end
+                    conditionPartHolder:AddChild(currentConditionPartSearch)
 
                     local editButton = AceGUI:Create("Button")
                     editButton:SetText("Edit")
@@ -335,12 +531,29 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
 
                     rotaPartHolder:AddChild(conditionPartHolder)
                 end
-            else
-                local addConditionButton = AceGUI:Create("Button")
-                addConditionButton:SetText("Add Condition")
-                addConditionButton:SetWidth(150)                  
-                rotaPartHolder:AddChild(addConditionButton)
             end
+
+            local addConditionButton = AceGUI:Create("Button")
+            addConditionButton:SetText("Add Condition")
+            addConditionButton:SetWidth(150)      
+            addConditionButton:SetCallback("OnClick", function(widget) 
+                DPSGenie:showConditionPicker(rotaTitle, ks)
+            end)            
+            rotaPartHolder:AddChild(addConditionButton)
+
+            local deleteSpellButton = AceGUI:Create("Button")
+            deleteSpellButton:SetText("Delete Spell")
+            deleteSpellButton:SetWidth(150)            
+            deleteSpellButton:SetCallback("OnClick", function(widget) 
+                local dialog = StaticPopup_Show("CONFIRM_DELETE_SPELL", name)
+                if dialog then
+                    dialog.data = ks
+                    dialog.data2 = rotaTitle
+                end
+            end)      
+            rotaPartHolder:AddChild(deleteSpellButton)
+            deleteSpellButton:ClearAllPoints()
+            deleteSpellButton:SetPoint("TOPRIGHT", rotaPartHolder.content, "TOPRIGHT")
 
             --should be called last
             labelRotaHeader:AddChild(rotaPartHolder)
@@ -351,7 +564,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     addSpellButton:SetText("Add Spell")
     addSpellButton:SetWidth(150)              
     addSpellButton:SetCallback("OnClick", function(widget) 
-        DPSGenie:showSpellPicker(rotaTitle, selected)
+        DPSGenie:showSpellPicker(rotaTitle)
     end)   
 
     groupScrollFrame:AddChild(addSpellButton)

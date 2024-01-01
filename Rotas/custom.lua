@@ -8,10 +8,10 @@ local defaultSettings = {
 
 function DPSGenie:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("DPSGenieRotaDB", defaultSettings)
-    --DPSGenie:SetFewCustomRotas()
+    --DPSGenie:SetTestCustomRotas()
 end
 
-function DPSGenie:SetFewCustomRotas()
+function DPSGenie:SetTestCustomRotas()
     self.db.global.customRotas =
     {
         ["Test 1"] = {
@@ -27,25 +27,38 @@ function DPSGenie:SetFewCustomRotas()
             icon = "Interface\\Icons\\spell_holy_blessingofprotection_red",
             spells = {
                 [1] = {
-                    spellId = 35395,
-                    conditions = {},
-                },
+                    spellId = 285790,
+                    conditions = {
+                        [1] = {
+                            unit = "Player",
+                            subject = "Buffs",
+                            comparer = "less than",
+                            compare_value = "3",
+                            search = 285789
+                        },
+                    },
+                }, 
                 [2] = {
                     spellId = 19943,
                     conditions = {
                         [1] = {
-                            pool = "playerBuffs",
-                            compare = "contains",
-                            what = 853489
+                            unit = "Player",
+                            subject = "Buffs",
+                            comparer = "contains",
+                            search = 853489
                         },
                         [2] = {
-                            pool = "playerHP",
-                            compare = "less than",
-                            what = 80
-                        }
-                    }
-                }
-            }
+                            unit = "Player",
+                            subject = "Health",
+                            comparer = "less than",
+                            search = 80
+                        },
+                    },
+                },
+                [3] = {
+                    spellId = 35395,
+                },
+            },
         },
     }
 end
