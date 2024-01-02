@@ -292,6 +292,7 @@ end
 function DPSGenie:swapSpells(rota, index1, index2)
     tbl = customRotas[rota]
     if tbl and tbl.spells and tbl.spells[index1] and tbl.spells[index2] then
+        --print("would swap")
         tbl.spells[index1], tbl.spells[index2] = tbl.spells[index2], tbl.spells[index1]
     end
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
@@ -397,9 +398,14 @@ function DPSGenie:CreateRotaBuilder()
 end
 
 
-local testObjTable = {}
+local customButtons = {}
 
 function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
+
+    --remove custom buttons as they were not added as childs
+    for btnCnt = 1, #customButtons do
+        customButtons[btnCnt].frame:Hide();
+      end
 
     local rotaData
     if string.find(selected, "custom") then
@@ -484,9 +490,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     --labelRotaHeader:SetTitle("Spell Rotation")
     groupScrollFrame:AddChild(labelRotaHeader)
 
-
     if rotaData.spells then
-        for ks, vs in pairs(rotaData.spells) do
+        for ks, vs in ipairs(rotaData.spells) do
 
             local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vs.spellId)
 
@@ -503,7 +508,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             rotaPartHolder:AddChild(currentRotaPartLabel)
 
             if vs.conditions then
-                for kc, vc in pairs(vs.conditions) do
+                for kc, vc in ipairs(vs.conditions) do
                     local conditionPartHolder = AceGUI:Create("InlineGroup")
                     conditionPartHolder:SetTitle(kc .. ". Condition")
                     conditionPartHolder:SetFullWidth(true)
@@ -567,7 +572,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                     dialog.data = ks
                     dialog.data2 = rotaTitle
                 end
-            end)      
+            end)   
+            table.insert(customButtons, deleteSpellButton)   
             --rotaPartHolder:AddChild(deleteSpellButton)
             
             deleteSpellButton.frame:ClearAllPoints()
@@ -580,8 +586,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             moveSpellUpButton:SetWidth(20)   
             moveSpellUpButton:SetHeight(20)           
             moveSpellUpButton:SetCallback("OnClick", function(widget) 
-                print("moveup " .. rotaTitle .. " io: " .. ks .. " in: " .. ks-1)
-                --DPSGenie:swapSpells(rotaTitle, ks, ks-1)
+                --print("moveup " .. rotaTitle .. " io: " .. ks .. " in: " .. ks-1)
+                DPSGenie:swapSpells(rotaTitle, ks, ks-1)
             end) 
             
             moveSpellUpButton.frame:ClearAllPoints()
@@ -591,14 +597,15 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             if ks ~= 1 then
                 moveSpellUpButton.frame:Show()
             end
+            table.insert(customButtons, moveSpellUpButton)
             --rotaPartHolder:AddChild(moveSpellUpButton)
 
             local moveSpellDownButton = AceGUI:Create("Button")
             moveSpellDownButton:SetWidth(20)   
             moveSpellDownButton:SetHeight(20)           
             moveSpellDownButton:SetCallback("OnClick", function(widget) 
-                print("movedown " .. rotaTitle .. " io: " .. ks .. " in: " .. ks+1)
-                --DPSGenie:swapSpells(rotaTitle, ks, ks+1)
+                --print("movedown " .. rotaTitle .. " io: " .. ks .. " in: " .. ks+1)
+                DPSGenie:swapSpells(rotaTitle, ks, ks+1)
             end)   
             moveSpellDownButton.frame:ClearAllPoints()
             moveSpellDownButton.frame:SetParent(rotaPartHolder.frame)
@@ -611,6 +618,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             if ks ~= #rotaData.spells then
                 moveSpellDownButton.frame:Show()
             end
+            table.insert(customButtons, moveSpellDownButton)
             --rotaPartHolder:AddChild(moveSpellDownButton)
 
 

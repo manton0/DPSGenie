@@ -50,6 +50,7 @@ end
 local acitveRota
 
 function DPSGenie:SetActiveRota(rotaTable)
+    DPSGenie:Print("Setting active Rota to: " .. rotaTable.name)
     acitveRota = rotaTable
     DPSGenie:SaveSettingToProfile("activeRota", rotaTable)
     -- build cache with, spellinfo, harmful, helpful
@@ -69,7 +70,7 @@ function DPSGenie:runRotaTable()
 
         --table.sort(testTable)
 
-        for index, value in pairs(acitveRota.spells) do
+        for index, value in ipairs(acitveRota.spells) do
  
             local spell = value["spellId"]
 
