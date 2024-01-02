@@ -77,7 +77,8 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     conditionPickerFrame:SetTitle("DPSGenie Condition Picker")
     conditionPickerFrame:SetWidth(300)
     conditionPickerFrame:SetHeight(400)
-    conditionPickerFrame:SetLayout("Flow")
+    conditionPickerFrame:SetLayout("List")
+    conditionPickerFrame.frame:SetFrameStrata("HIGH")
 
     local addConditionLabel = AceGUI:Create("Label")
     addConditionLabel:SetFullWidth(true)
@@ -163,6 +164,7 @@ function DPSGenie:showSpellPicker(rotaTitle)
     spellPickerFrame:SetWidth(300)
     spellPickerFrame:SetHeight(200)
     spellPickerFrame:SetLayout("List")
+    spellPickerFrame.frame:SetFrameStrata("HIGH")
 
     --TODO: setting the frame unmovable will trigger an ace error. why you no sticky??
     --[[
@@ -287,6 +289,14 @@ function DPSGenie:removeSpellFromRota(rota, index)
     DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
 end
 
+function DPSGenie:swapSpells(rota, index1, index2)
+    tbl = customRotas[rota]
+    if tbl and tbl.spells and tbl.spells[index1] and tbl.spells[index2] then
+        tbl.spells[index1], tbl.spells[index2] = tbl.spells[index2], tbl.spells[index1]
+    end
+    DPSGenie:SaveCustomRota(rota, customRotas[rota])
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+end 
 
 
 function DPSGenie:showRotaBuilder()
@@ -338,7 +348,11 @@ function DPSGenie:GetRotaList()
     end 
 
     for k, v in pairs(customRotas) do
-        local entry = {value = v.name, text = v.name, icon = v.icon}
+        local activeName = v.name
+        --if v.name == DPSGenie:LoadSettingFromProfile("activeRota") then
+        --    activeName = "\124cFF00FF00" .. v.name .. "\124r"
+        --end
+        local entry = {value = v.name, text = activeName, icon = v.icon}
         table.insert(tree[4].children, entry)
     end 
 
@@ -351,6 +365,7 @@ function DPSGenie:CreateRotaBuilder()
     Rotaframe:SetWidth(600)
     Rotaframe:SetHeight(525)
     Rotaframe:SetLayout("Fill")
+    Rotaframe.frame:SetFrameStrata("HIGH")
 
     rotaTree = AceGUI:Create("TreeGroup")
     rotaTree:SetFullHeight(true)
@@ -459,10 +474,10 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     end)                 
     groupScrollFrame:AddChild(useRotaButton)
 
-    local labelRotaHeaderLabel = AceGUI:Create("Heading")
-    labelRotaHeaderLabel:SetFullWidth(true)
-    labelRotaHeaderLabel:SetText("Rotation Setup")
-    groupScrollFrame:AddChild(labelRotaHeaderLabel)
+    local RotaHeaderHeader = AceGUI:Create("Heading")
+    RotaHeaderHeader:SetFullWidth(true)
+    RotaHeaderHeader:SetText("Rotation Setup")
+    groupScrollFrame:AddChild(RotaHeaderHeader)
 
     local labelRotaHeader = AceGUI:Create("SimpleGroup")
     labelRotaHeader:SetFullWidth(true)
@@ -478,6 +493,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             local rotaPartHolder = AceGUI:Create("InlineGroup")
             rotaPartHolder:SetTitle(ks .. ". " .. name)
             rotaPartHolder:SetFullWidth(true)
+            rotaPartHolder:SetLayout("List")
 
             local currentRotaPartLabel = AceGUI:Create("Label")
             currentRotaPartLabel:SetFullWidth(true)
@@ -543,7 +559,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
 
             local deleteSpellButton = AceGUI:Create("Button")
             deleteSpellButton:SetText("Delete Spell")
-            deleteSpellButton:SetWidth(150)            
+            deleteSpellButton:SetWidth(20)  
+            deleteSpellButton:SetHeight(20)          
             deleteSpellButton:SetCallback("OnClick", function(widget) 
                 local dialog = StaticPopup_Show("CONFIRM_DELETE_SPELL", name)
                 if dialog then
@@ -551,9 +568,51 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                     dialog.data2 = rotaTitle
                 end
             end)      
-            rotaPartHolder:AddChild(deleteSpellButton)
-            deleteSpellButton:ClearAllPoints()
-            deleteSpellButton:SetPoint("TOPRIGHT", rotaPartHolder.content, "TOPRIGHT")
+            --rotaPartHolder:AddChild(deleteSpellButton)
+            
+            deleteSpellButton.frame:ClearAllPoints()
+            deleteSpellButton.frame:SetParent(rotaPartHolder.frame)
+            deleteSpellButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -10, -30)
+            deleteSpellButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\close.tga")
+            deleteSpellButton.frame:Show()
+
+            local moveSpellUpButton = AceGUI:Create("Button")
+            moveSpellUpButton:SetWidth(20)   
+            moveSpellUpButton:SetHeight(20)           
+            moveSpellUpButton:SetCallback("OnClick", function(widget) 
+                print("moveup " .. rotaTitle .. " io: " .. ks .. " in: " .. ks-1)
+                --DPSGenie:swapSpells(rotaTitle, ks, ks-1)
+            end) 
+            
+            moveSpellUpButton.frame:ClearAllPoints()
+            moveSpellUpButton.frame:SetParent(rotaPartHolder.frame)
+            moveSpellUpButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -35, -30)
+            moveSpellUpButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\up.tga")
+            if ks ~= 1 then
+                moveSpellUpButton.frame:Show()
+            end
+            --rotaPartHolder:AddChild(moveSpellUpButton)
+
+            local moveSpellDownButton = AceGUI:Create("Button")
+            moveSpellDownButton:SetWidth(20)   
+            moveSpellDownButton:SetHeight(20)           
+            moveSpellDownButton:SetCallback("OnClick", function(widget) 
+                print("movedown " .. rotaTitle .. " io: " .. ks .. " in: " .. ks+1)
+                --DPSGenie:swapSpells(rotaTitle, ks, ks+1)
+            end)   
+            moveSpellDownButton.frame:ClearAllPoints()
+            moveSpellDownButton.frame:SetParent(rotaPartHolder.frame)
+            local xpos = -60
+            if ks == 1 then
+                xpos = -35
+            end
+            moveSpellDownButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", xpos, -30)
+            moveSpellDownButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\down.tga")
+            if ks ~= #rotaData.spells then
+                moveSpellDownButton.frame:Show()
+            end
+            --rotaPartHolder:AddChild(moveSpellDownButton)
+
 
             --should be called last
             labelRotaHeader:AddChild(rotaPartHolder)

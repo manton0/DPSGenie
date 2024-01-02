@@ -52,6 +52,7 @@ local acitveRota
 function DPSGenie:SetActiveRota(rotaTable)
     acitveRota = rotaTable
     DPSGenie:SaveSettingToProfile("activeRota", rotaTable)
+    -- build cache with, spellinfo, harmful, helpful
 end
 
 function DPSGenie:GetActiveRota()
@@ -85,6 +86,7 @@ function DPSGenie:runRotaTable()
 
             -- UnitCanAttack("player", unit) if harmfull spell
             -- helpfulspell unit = player
+            --TODO: ignore gc here, rota will break to next 
             if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) then
                 if usable and (spellInRange ~= 0 or DPSGenie.settings.showOutOfRange) and ((start == 0 and duration == 0) or (maxCharges > 0 and currentCharges > 0)) then
                     DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
