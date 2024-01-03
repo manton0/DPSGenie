@@ -106,12 +106,25 @@ function DPSGenie:runRotaTable()
             end
 
             -- UnitCanAttack("player", unit) if harmfull spell
-            -- helpfulspell unit = player
             --TODO: ignore gc here, rota will break to next 
             if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) then
-                if usable and (spellInRange ~= 0 or DPSGenie.settings.showOutOfRange) and ((start == 0 and duration == 0) or (maxCharges > 0 and currentCharges > 0)) then
-                    DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
-                    success = true
+
+
+                --quick hack to check for "gcd"
+                local gcdremain = 1.5
+                if start > 0 then
+                    gcdremain = start + duration - GetTime()
+                end
+
+
+                if usable and (spellInRange ~= 0 or DPSGenie.settings.showOutOfRange) and (((start == 0 and duration == 0) or gcdremain < 1.5) or (maxCharges > 0 and currentCharges > 0)) then
+
+                    if (UnitCanAttack("player", unit) and IsHarmfulSpell(name) or IsHelpfulSpell(name)) then
+                        DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
+                        success = true
+                    end
+
+
                 end
             end
 
