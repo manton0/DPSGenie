@@ -95,10 +95,24 @@ function DPSGenie:runRotaTable()
             local spell = value["spellId"]
 
             local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spell)
+
+            DPSGenie:debug("Running checks and conditions for spell " .. name)
+
+            if IsHelpfulSpell(name) then
+                DPSGenie:debug(" - is helpful")
+                unit = "player"
+            else
+                DPSGenie:debug(" - is harmful")
+            end
+
             local usable, nomana = IsUsableSpell(name)
             local start, duration, enable = GetSpellCooldown(name)
             local currentCharges, maxCharges, cooldownStart, cooldownDuration, chargeModRate = GetSpellCharges(spell)
             local spellInRange = IsSpellInRange(name, unit)
+
+            if IsHelpfulSpell(name) then
+                spellInRange = 1
+            end
 
             local iconModifiers = {}
             if spellInRange == 0 then
@@ -106,7 +120,6 @@ function DPSGenie:runRotaTable()
             end
 
             -- UnitCanAttack("player", unit) if harmfull spell
-            --TODO: ignore gc here, rota will break to next 
             if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) then
 
 
@@ -116,12 +129,78 @@ function DPSGenie:runRotaTable()
                     gcdremain = start + duration - GetTime()
                 end
 
+                DPSGenie:debug("spell " .. name .. " is usable: " .. (usable or "0"))
+                DPSGenie:debug("spell " .. name .. " spellInRange: " .. (spellInRange or "0"))
 
                 if usable and (spellInRange ~= 0 or DPSGenie.settings.showOutOfRange) and (((start == 0 and duration == 0) or gcdremain < 1.5) or (maxCharges > 0 and currentCharges > 0)) then
 
-                    if (UnitCanAttack("player", unit) and IsHarmfulSpell(name) or IsHelpfulSpell(name)) then
-                        DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
-                        success = true
+                    if (UnitCanAttack("player", unit) and IsHarmfulSpell(name)) or IsHelpfulSpell(name) then
+
+                        local conditionsPassed = 0
+                        --check all conditions, break on fail
+                        if value["conditions"] then
+                            DPSGenie:debug("spell " .. name .. " has " .. #value["conditions"] .. " conditions")
+                            for cindex, condition in ipairs(value["conditions"]) do
+                                --buffs start
+                                if condition.subject == "Buffs" then
+                                    DPSGenie:debug("- c" .. cindex ..": buff condition")
+                                    local auraName = select(1, GetSpellInfo(condition.search))
+                                    local unit = string.lower(condition.unit)
+                                    local name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID = UnitAura(unit, auraName)
+                                    if not count then count = 0 end    
+                                    if not name then name = "" end
+
+                                    --buffs less than start
+                                    if condition.comparer == "less than" then
+                                        DPSGenie:debug("-- c".. cindex ..": less than: " .. name .. " value: " .. condition.compare_value .. " count: " .. count)
+                                        if not (count >= tonumber(condition.compare_value)) then
+                                            DPSGenie:debug("conditon passed!")
+                                            conditionsPassed = conditionsPassed + 1
+                                        end
+                                    --buffs less than end
+                                    --buffs contains start
+                                    elseif condition.comparer == "contains" then
+                                        DPSGenie:debug("-- c" .. cindex .. ": contains: " .. name .. " count: " .. count)
+                                        if count > 0 then
+                                            DPSGenie:debug("conditon passed!")
+                                            conditionsPassed = conditionsPassed + 1
+                                        end
+                                    --buffs contains end
+                                    end
+                                    
+                                --buffs end
+                                --healt start
+                                elseif condition.subject == "Health" then
+                                    DPSGenie:debug("- c" .. index ..": Health condition")
+                                    local unit = string.lower(condition.unit)
+                                    local maxHP = UnitHealthMax(unit)
+                                    local curHP = UnitHealth(unit)
+                                    local percent = (curHP / maxHP) * 100
+                                    DPSGenie:debug("current HP of " .. unit .. ": " .. percent .. "%")
+                                    DPSGenie:debug("conditon passed!")
+                                    conditionsPassed = conditionsPassed + 1
+                                --healt end
+                                end
+                            end
+                        end
+
+                        if value["conditions"] and conditionsPassed == #value["conditions"] then
+                            DPSGenie:debug(name .. "passed " .. conditionsPassed .. " conditions")
+                            DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
+                            success = true
+                        end
+
+                        --base checks were ok but no conditions, pass
+                        if not value["conditions"] then
+                            DPSGenie:debug(name .. " has no conditions and passed")
+                            DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
+                            success = true
+                        end
+
+                        if value["conditions"] then
+                            DPSGenie:debug(name .. "passed only " .. conditionsPassed .. " conditions of " .. #value["conditions"])
+                        end
+
                     end
 
 

@@ -2,6 +2,12 @@ DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
 DPSGenie:Print("Utils loaded!")
 
+
+function DPSGenie:debug(text)
+    ChatFrame3:AddMessage(text)
+end
+
+
 -- Erstelle den Hauptframe (wie ein Tooltip)
 local mainFrame = CreateFrame("Frame", "MyAddonMainFrame", UIParent)
 mainFrame:SetSize(220, 50)
