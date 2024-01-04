@@ -63,8 +63,27 @@ function DPSGenie:SetTestCustomRotas()
     }
 end
 
+
+local baselayout = {
+    name = "",
+    description = "", 
+    icon = "Interface\\Icons\\INV_Misc_QuestionMark",
+    spells = {} 
+}
+
+function DPSGenie:CreateNewRota(name, descr)
+    baselayout.name = name
+    baselayout.description = descr
+    local baseRota = DPSGenie:deepcopy(baselayout)
+    self.db.global.customRotas[name] = baseRota
+end
+
 function DPSGenie:GetCustomRotas()
     return self.db.global.customRotas
+end
+
+function DPSGenie:GetCustomRota(name)
+    return self.db.global.customRotas[name] or false
 end
 
 function DPSGenie:SaveCustomRota(rota, data)
@@ -89,6 +108,5 @@ function DPSGenie:DeleteCustomRota(rotaName)
     end
 
     --DPSGenie:Print("delete key no: " .. rotaKey .. " -> " .. self.db.global.customRotas[rotaKey].name)
-
     --self.db.global.customRotas[rotaName] = nil
 end

@@ -3,8 +3,11 @@ DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 DPSGenie:Print("Utils loaded!")
 
 
+local showDebug = false
 function DPSGenie:debug(text)
-    ChatFrame3:AddMessage(text)
+    if showDebug then
+        ChatFrame3:AddMessage(text)
+    end
 end
 
 

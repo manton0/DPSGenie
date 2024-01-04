@@ -248,7 +248,9 @@ function DPSGenie:showSpellPicker(rotaTitle)
     saveButton:SetWidth(75) 
     saveButton:SetCallback("OnClick", function(widget) 
         DPSGenie:addSpellToRota(rotaTitle, selectedSpell)
-        AceGUI:Release(widget.parent.parent)
+        if spellPickerFrame then
+            AceGUI:Release(spellPickerFrame)
+        end
     end)                 
     buttonsContainer:AddChild(saveButton)
 
@@ -256,7 +258,9 @@ function DPSGenie:showSpellPicker(rotaTitle)
     cancelButton:SetText("Cancel")
     cancelButton:SetWidth(75)       
     cancelButton:SetCallback("OnClick", function(widget) 
-        AceGUI:Release(widget.parent.parent)
+        if spellPickerFrame then
+            AceGUI:Release(spellPickerFrame)
+        end
     end)           
     buttonsContainer:AddChild(cancelButton)
 
@@ -379,10 +383,13 @@ function DPSGenie:CreateRotaBuilder()
         container:ReleaseChildren()
 
         if selected == "newRotation" then
-            print("Create a new rotation.")
+            DPSGenie:DrawNewRotaWindow(container)
+        elseif selected == "importRotation" then
+            print("Import rotation.")
         else
             -- Finding out the selected path to get the rotaTitle
             -- Not conerned with ever clicking on Active/Inactive itself
+            DPSGenie:Print("tree selected: " .. selected)
             local rotaTitle = {strsplit("\001", selected)}
             tremove(rotaTitle, 1)
             rotaTitle = strjoin("?", unpack(rotaTitle))
@@ -397,6 +404,73 @@ function DPSGenie:CreateRotaBuilder()
     rotaTree:SelectByPath("customRotations")
 end
 
+function DPSGenie:DrawNewRotaWindow(container)
+
+    local groupScrollContainer = AceGUI:Create("SimpleGroup")
+    groupScrollContainer:SetFullWidth(true)
+    groupScrollContainer:SetFullHeight(true)
+    groupScrollContainer:SetLayout("Fill")
+    container:AddChild(groupScrollContainer)
+
+    local groupScrollFrame = AceGUI:Create("ScrollFrame")
+    groupScrollFrame:SetFullWidth(true)
+    groupScrollFrame:SetLayout("Flow")
+    groupScrollContainer:AddChild(groupScrollFrame)
+
+
+    local saveNewRotaButton = AceGUI:Create("Button")
+    saveNewRotaButton:SetText("Create Rota")
+    saveNewRotaButton:SetWidth(150)      
+
+    local rotaExistsError = AceGUI:Create("Label")
+    rotaExistsError:SetFullWidth(true)
+    rotaExistsError:SetHeight(50)
+
+    local rotaNameInput
+    local rotaDescrInput
+
+    local titleEditBox = AceGUI:Create("EditBox")
+    titleEditBox:SetFullWidth(true)
+    titleEditBox:SetLabel("Title")
+    titleEditBox:DisableButton(true)
+    titleEditBox:SetCallback("OnTextChanged", function(widget, event, text) 
+        rotaNameInput = text
+        if DPSGenie:GetCustomRota(rotaNameInput) then
+            saveNewRotaButton:SetDisabled(true)
+            rotaExistsError:SetText("\124cFFFF0000Error: Rotation with this name already exists!\124r\n\n")
+        else
+            saveNewRotaButton:SetDisabled(false)
+            rotaExistsError:SetText("")
+        end
+    end)                 
+
+    groupScrollFrame:AddChild(titleEditBox)
+
+    groupScrollFrame:AddChild(rotaExistsError)
+
+    local descrEditBox = AceGUI:Create("EditBox")
+    descrEditBox:SetFullWidth(true)
+    descrEditBox:SetLabel("Description")
+    descrEditBox:DisableButton(true)
+    descrEditBox:SetCallback("OnTextChanged", function(widget, event, text) 
+        rotaDescrInput = text
+    end)
+    groupScrollFrame:AddChild(descrEditBox)
+  
+    saveNewRotaButton:SetCallback("OnClick", function(widget) 
+        print("create new rota: " .. rotaNameInput .. " / " .. rotaDescrInput)
+        DPSGenie:CreateNewRota(rotaNameInput, rotaDescrInput)
+        rotaTree:SetTree(DPSGenie:GetRotaList())
+        rotaTree:SelectByValue("customRotations\001"..rotaNameInput)
+        --DPSGenie:DrawRotaGroup(rotaTree, rotaNameInput, "custom")
+    end)
+    groupScrollFrame:AddChild(saveNewRotaButton)
+
+
+end
+
+function DPSGenie:DrawImportRotaWindow(container)
+end
 
 local customButtons = {}
 
@@ -492,7 +566,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     copyRotaButton:SetCallback("OnClick", function(widget) 
         DPSGenie:CopyRotaToCustom(rotaData)
         rotaTree:SetTree(DPSGenie:GetRotaList())
-        DPSGenie:DrawRotaGroup(rotaTree, "Copy of ".. rotaData.name, "custom")
+        rotaTree:SelectByValue("customRotations\001".."Copy of ".. rotaData.name)
+        --DPSGenie:DrawRotaGroup(rotaTree, "Copy of ".. rotaData.name, "custom")
     end)                 
     groupScrollFrame:AddChild(copyRotaButton)
 
