@@ -389,7 +389,6 @@ function DPSGenie:CreateRotaBuilder()
         else
             -- Finding out the selected path to get the rotaTitle
             -- Not conerned with ever clicking on Active/Inactive itself
-            DPSGenie:Print("tree selected: " .. selected)
             local rotaTitle = {strsplit("\001", selected)}
             tremove(rotaTitle, 1)
             rotaTitle = strjoin("?", unpack(rotaTitle))
@@ -458,7 +457,7 @@ function DPSGenie:DrawNewRotaWindow(container)
     groupScrollFrame:AddChild(descrEditBox)
   
     saveNewRotaButton:SetCallback("OnClick", function(widget) 
-        print("create new rota: " .. rotaNameInput .. " / " .. rotaDescrInput)
+        --print("create new rota: " .. rotaNameInput .. " / " .. rotaDescrInput)
         DPSGenie:CreateNewRota(rotaNameInput, rotaDescrInput)
         rotaTree:SetTree(DPSGenie:GetRotaList())
         rotaTree:SelectByValue("customRotations\001"..rotaNameInput)
@@ -575,10 +574,10 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     deleteRotaButton:SetText("Delete Rota")
     deleteRotaButton:SetWidth(120) 
     deleteRotaButton:SetCallback("OnClick", function(widget) 
-        DPSGenie:Print("would delete rota: " .. rotaData.name)
+        --DPSGenie:Print("would delete rota: " .. rotaData.name)
         DPSGenie:DeleteCustomRota(rotaData.name)
         rotaTree:SetTree(DPSGenie:GetRotaList())
-        --rotaTree:SelectByPath("customRotations")
+        rotaTree:SelectByPath("customRotations")
     end)                 
     groupScrollFrame:AddChild(deleteRotaButton)
 

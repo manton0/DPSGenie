@@ -98,15 +98,20 @@ function DPSGenie:CopyRotaToCustom(rota)
 end
 
 function DPSGenie:DeleteCustomRota(rotaName)
+    self.db.global.customRotas[rotaName] = nil
+    --[[
     local rotaKey = 0
-    for key = 1, #self.db.global.customRotas do
+    for key = 1, #{self.db.global.customRotas} do
         DPSGenie:Print("key: " .. key .. " -> " .. self.db.global.customRotas[key].name)
-        if self.db.global.customRotas[key].name == rotaName then
-            rotaKey = key
-            break
-        end
+
+        --if self.db.global.customRotas[key].name == rotaName then
+        --    rotaKey = key
+        --    break
+        --end
     end
 
     --DPSGenie:Print("delete key no: " .. rotaKey .. " -> " .. self.db.global.customRotas[rotaKey].name)
     --self.db.global.customRotas[rotaName] = nil
+
+    ]]--
 end
