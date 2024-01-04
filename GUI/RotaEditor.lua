@@ -23,6 +23,22 @@ StaticPopupDialogs["CONFIRM_DELETE_SPELL"] = {
     preferredIndex = 3,
 }
 
+StaticPopupDialogs["CONFIRM_DELETE_ROTA"] = {
+    text = "Do you want to delete the Rota %s?",
+    button1 = "Yes",
+    button2 = "No",
+    OnAccept = function (self, data)
+        --print("deleting " .. data .. " from " .. data2)
+        DPSGenie:DeleteCustomRota(data)
+        rotaTree:SetTree(DPSGenie:GetRotaList())
+        rotaTree:SelectByPath("customRotations")
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
 local conditionsUnit = {
     "Player",
     "Target",
@@ -575,9 +591,10 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     deleteRotaButton:SetWidth(120) 
     deleteRotaButton:SetCallback("OnClick", function(widget) 
         --DPSGenie:Print("would delete rota: " .. rotaData.name)
-        DPSGenie:DeleteCustomRota(rotaData.name)
-        rotaTree:SetTree(DPSGenie:GetRotaList())
-        rotaTree:SelectByPath("customRotations")
+        local dialog = StaticPopup_Show("CONFIRM_DELETE_ROTA", rotaData.name)
+        if dialog then
+            dialog.data = rotaData.name
+        end       
     end)                 
     groupScrollFrame:AddChild(deleteRotaButton)
 

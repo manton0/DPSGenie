@@ -72,6 +72,7 @@ local baselayout = {
 }
 
 function DPSGenie:CreateNewRota(name, descr)
+    if descr == nil or descr == "" then descr = name end
     baselayout.name = name
     baselayout.description = descr
     local baseRota = DPSGenie:deepcopy(baselayout)
