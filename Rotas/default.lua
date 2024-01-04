@@ -7,6 +7,19 @@ local defaultRotas = {
         name = "Consecrated Strikes",
         description = "Build for Consecrated Strikes", 
         icon = "Interface\\Icons\\ability_paladin_righteousvengeance",
+        spells = {
+            [1] = {
+                spellId = 879,
+                conditions = {
+                    [1] = {
+                        unit = "Player",
+                        subject = "Buffs",
+                        comparer = "contains",
+                        search = 853489
+                    },
+                },
+            },
+        }
     },
     ["Aimed Explosive Shot"] = {
         name = "Aimed Explosive Shot",

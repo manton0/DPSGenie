@@ -8,6 +8,26 @@ function DPSGenie:debug(text)
 end
 
 
+function DPSGenie:deepcopy(o, seen)
+    seen = seen or {}
+    if o == nil then return nil end
+    if seen[o] then return seen[o] end
+  
+    local no
+    if type(o) == 'table' then
+      no = {}
+      seen[o] = no
+  
+      for k, v in next, o, nil do
+        no[DPSGenie:deepcopy(k, seen)] = DPSGenie:deepcopy(v, seen)
+      end
+      setmetatable(no, DPSGenie:deepcopy(getmetatable(o), seen))
+    else -- number, string, boolean, etc
+      no = o
+    end
+    return no
+  end
+
 -- Erstelle den Hauptframe (wie ein Tooltip)
 local mainFrame = CreateFrame("Frame", "MyAddonMainFrame", UIParent)
 mainFrame:SetSize(220, 50)
@@ -50,5 +70,5 @@ button1:SetPoint("LEFT", buttonFrame, "LEFT", 10, 0)
 local button2 = CreateButton(buttonFrame, "Rota", "DPSGenie:showRotaBuilder()")
 button2:SetPoint("LEFT", buttonFrame, "LEFT", 80, 0)
 
-local button3 = CreateButton(buttonFrame, "Picker", "DPSGenie:showAllPicker()")
+local button3 = CreateButton(buttonFrame, "None", "return")
 button3:SetPoint("LEFT", buttonFrame, "LEFT", 150, 0)

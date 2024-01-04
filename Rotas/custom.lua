@@ -70,3 +70,25 @@ end
 function DPSGenie:SaveCustomRota(rota, data)
     self.db.global.customRotas[rota] = data
 end
+
+function DPSGenie:CopyRotaToCustom(rota)
+    local rotaCopy = DPSGenie:deepcopy(rota)
+    local rotaName = "Copy of " .. rota.name
+    rotaCopy.name = rotaName
+    self.db.global.customRotas[rotaName] = rotaCopy
+end
+
+function DPSGenie:DeleteCustomRota(rotaName)
+    local rotaKey = 0
+    for key = 1, #self.db.global.customRotas do
+        DPSGenie:Print("key: " .. key .. " -> " .. self.db.global.customRotas[key].name)
+        if self.db.global.customRotas[key].name == rotaName then
+            rotaKey = key
+            break
+        end
+    end
+
+    --DPSGenie:Print("delete key no: " .. rotaKey .. " -> " .. self.db.global.customRotas[rotaKey].name)
+
+    --self.db.global.customRotas[rotaName] = nil
+end

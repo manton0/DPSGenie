@@ -405,13 +405,16 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     --remove custom buttons as they were not added as childs
     for btnCnt = 1, #customButtons do
         customButtons[btnCnt].frame:Hide();
-      end
+    end
 
+    local readOnly
     local rotaData
     if string.find(selected, "custom") then
         rotaData = customRotas[rotaTitle]
+        readOnly = false
     else
         rotaData = defaultRotas[rotaTitle]
+        readOnly = true
     end
 
     --group.rotaTitle = rotaTitle
@@ -443,6 +446,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     titleEditBox:SetFullWidth(true)
     titleEditBox:SetLabel("Title")
     titleEditBox:SetText(rotaData.name)
+    titleEditBox:SetDisabled(readOnly)
     groupScrollFrame:AddChild(titleEditBox)
  
     --[[
@@ -466,19 +470,43 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     end)
     ]]--
 
-    local titleEditBox = AceGUI:Create("EditBox")
-    titleEditBox:SetFullWidth(true)
-    titleEditBox:SetLabel("Description")
-    titleEditBox:SetText(rotaData.description)
-    groupScrollFrame:AddChild(titleEditBox)
+    local descrEditBox = AceGUI:Create("EditBox")
+    descrEditBox:SetFullWidth(true)
+    descrEditBox:SetLabel("Description")
+    descrEditBox:SetText(rotaData.description)
+    descrEditBox:SetDisabled(readOnly)
+    groupScrollFrame:AddChild(descrEditBox)
 
     local useRotaButton = AceGUI:Create("Button")
-    useRotaButton:SetText("Use this Rota")
-    useRotaButton:SetWidth(150) 
+    useRotaButton:SetText("Use Rota")
+    useRotaButton:SetWidth(100) 
     useRotaButton:SetCallback("OnClick", function(widget) 
         DPSGenie:SetActiveRota(rotaData)
     end)                 
     groupScrollFrame:AddChild(useRotaButton)
+
+
+    local copyRotaButton = AceGUI:Create("Button")
+    copyRotaButton:SetText("Copy Rota")
+    copyRotaButton:SetWidth(100) 
+    copyRotaButton:SetCallback("OnClick", function(widget) 
+        DPSGenie:CopyRotaToCustom(rotaData)
+        rotaTree:SetTree(DPSGenie:GetRotaList())
+        DPSGenie:DrawRotaGroup(rotaTree, "Copy of ".. rotaData.name, "custom")
+    end)                 
+    groupScrollFrame:AddChild(copyRotaButton)
+
+    local deleteRotaButton = AceGUI:Create("Button")
+    deleteRotaButton:SetText("Delete Rota")
+    deleteRotaButton:SetWidth(120) 
+    deleteRotaButton:SetCallback("OnClick", function(widget) 
+        DPSGenie:Print("would delete rota: " .. rotaData.name)
+        DPSGenie:DeleteCustomRota(rotaData.name)
+        rotaTree:SetTree(DPSGenie:GetRotaList())
+        --rotaTree:SelectByPath("customRotations")
+    end)                 
+    groupScrollFrame:AddChild(deleteRotaButton)
+
 
     local RotaHeaderHeader = AceGUI:Create("Heading")
     RotaHeaderHeader:SetFullWidth(true)
@@ -547,8 +575,10 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
 
                     local editButton = AceGUI:Create("Button")
                     editButton:SetText("Edit")
-                    editButton:SetWidth(75)                  
-                    conditionPartHolder:AddChild(editButton)
+                    editButton:SetWidth(75)    
+                    if not readOnly then              
+                        conditionPartHolder:AddChild(editButton)
+                    end
 
                     rotaPartHolder:AddChild(conditionPartHolder)
                 end
@@ -559,8 +589,10 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             addConditionButton:SetWidth(150)      
             addConditionButton:SetCallback("OnClick", function(widget) 
                 DPSGenie:showConditionPicker(rotaTitle, ks)
-            end)            
-            rotaPartHolder:AddChild(addConditionButton)
+            end)        
+            if not readOnly then    
+                rotaPartHolder:AddChild(addConditionButton)
+            end
 
             local deleteSpellButton = AceGUI:Create("Button")
             deleteSpellButton:SetText("Delete Spell")
@@ -580,7 +612,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             deleteSpellButton.frame:SetParent(rotaPartHolder.frame)
             deleteSpellButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -10, -30)
             deleteSpellButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\close.tga")
-            deleteSpellButton.frame:Show()
+            if not readOnly then
+                deleteSpellButton.frame:Show()
+            end
 
             local moveSpellUpButton = AceGUI:Create("Button")
             moveSpellUpButton:SetWidth(20)   
@@ -595,7 +629,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             moveSpellUpButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -35, -30)
             moveSpellUpButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\up.tga")
             if ks ~= 1 then
-                moveSpellUpButton.frame:Show()
+                if not readOnly then
+                    moveSpellUpButton.frame:Show()
+                end
             end
             table.insert(customButtons, moveSpellUpButton)
             --rotaPartHolder:AddChild(moveSpellUpButton)
@@ -616,7 +652,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             moveSpellDownButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", xpos, -30)
             moveSpellDownButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\down.tga")
             if ks ~= #rotaData.spells then
-                moveSpellDownButton.frame:Show()
+                if not readOnly then
+                    moveSpellDownButton.frame:Show()
+                end
             end
             table.insert(customButtons, moveSpellDownButton)
             --rotaPartHolder:AddChild(moveSpellDownButton)
@@ -634,7 +672,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
         DPSGenie:showSpellPicker(rotaTitle)
     end)   
 
-    groupScrollFrame:AddChild(addSpellButton)
+    if not readOnly then
+        groupScrollFrame:AddChild(addSpellButton)
+    end
 
     --[[
     local mlCodeEdit = AceGUI:Create("MultiLineEditBox")
