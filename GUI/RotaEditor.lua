@@ -94,6 +94,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     conditionPickerFrame:SetWidth(300)
     conditionPickerFrame:SetHeight(400)
     conditionPickerFrame:SetLayout("List")
+    conditionPickerFrame.title:SetScript("OnMouseDown", nil)
     conditionPickerFrame.frame:SetFrameStrata("HIGH")
 
     local addConditionLabel = AceGUI:Create("Label")
@@ -149,6 +150,9 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
         --print("add condition to " .. rotaTitle .. " Spell " .. rotaSpell)
         --print(DPSGenie:dumpTable(baseConditon))
         DPSGenie:addConditionToSpell(rotaTitle, rotaSpell, baseConditon)
+        if conditionPickerFrame then
+            conditionPickerFrame:Fire("OnClose")
+        end
 
     end)                 
     buttonsContainer:AddChild(saveButton)
@@ -157,7 +161,9 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     cancelButton:SetText("Cancel")
     cancelButton:SetWidth(75)   
     cancelButton:SetCallback("OnClick", function(widget) 
-        AceGUI:Release(widget.parent.parent)
+        if conditionPickerFrame then
+            conditionPickerFrame:Fire("OnClose")
+        end
     end)                
     buttonsContainer:AddChild(cancelButton)
 
@@ -180,23 +186,9 @@ function DPSGenie:showSpellPicker(rotaTitle)
     spellPickerFrame:SetWidth(300)
     spellPickerFrame:SetHeight(200)
     spellPickerFrame:SetLayout("List")
+    spellPickerFrame:EnableResize(false)
+    spellPickerFrame.title:SetScript("OnMouseDown", nil)
     spellPickerFrame.frame:SetFrameStrata("HIGH")
-
-    --TODO: setting the frame unmovable will trigger an ace error. why you no sticky??
-    --[[
-    spellPickerFrame.frame:SetMovable(false)
-    spellPickerFrame.frame:EnableMouse(true)
-    spellPickerFrame.frame:RegisterForDrag()
-    spellPickerFrame.frame:SetScript("OnDragStart", function(self)
-        self:StopMovingOrSizing()
-        return
-    end)
-    spellPickerFrame.frame:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        return
-    end)
-
-    ]]--
 
     local templist = {}
        -- Iteriere über alle Zaubersprüche im Buch des Spielers
@@ -265,7 +257,7 @@ function DPSGenie:showSpellPicker(rotaTitle)
     saveButton:SetCallback("OnClick", function(widget) 
         DPSGenie:addSpellToRota(rotaTitle, selectedSpell)
         if spellPickerFrame then
-            AceGUI:Release(spellPickerFrame)
+            spellPickerFrame:Fire("OnClose")
         end
     end)                 
     buttonsContainer:AddChild(saveButton)
@@ -275,7 +267,7 @@ function DPSGenie:showSpellPicker(rotaTitle)
     cancelButton:SetWidth(75)       
     cancelButton:SetCallback("OnClick", function(widget) 
         if spellPickerFrame then
-            AceGUI:Release(spellPickerFrame)
+            spellPickerFrame:Fire("OnClose")
         end
     end)           
     buttonsContainer:AddChild(cancelButton)
@@ -387,6 +379,16 @@ function DPSGenie:CreateRotaBuilder()
     Rotaframe:SetHeight(525)
     Rotaframe:SetLayout("Fill")
     Rotaframe.frame:SetFrameStrata("HIGH")
+
+    Rotaframe:SetCallback("OnClose", function(widget) 
+        if spellPickerFrame then
+            spellPickerFrame:Fire("OnClose")
+        end
+        if conditionPickerFrame then
+            conditionPickerFrame:Fire("OnClose")
+        end
+        --AceGUI:Release(widget) 
+    end)
 
     rotaTree = AceGUI:Create("TreeGroup")
     rotaTree:SetFullHeight(true)
@@ -679,6 +681,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             addConditionButton:SetText("Add Condition")
             addConditionButton:SetWidth(150)      
             addConditionButton:SetCallback("OnClick", function(widget) 
+                if spellPickerFrame then
+                    spellPickerFrame:Fire("OnClose")
+                end
                 DPSGenie:showConditionPicker(rotaTitle, ks)
             end)        
             if not readOnly then    
@@ -760,6 +765,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     addSpellButton:SetText("Add Spell")
     addSpellButton:SetWidth(150)              
     addSpellButton:SetCallback("OnClick", function(widget) 
+        if conditionPickerFrame then
+            conditionPickerFrame:Fire("OnClose")
+        end
         DPSGenie:showSpellPicker(rotaTitle)
     end)   
 
