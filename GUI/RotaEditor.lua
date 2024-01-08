@@ -46,7 +46,7 @@ local conditionsUnit = {
 
 local conditionsSubjects = {
     "Buffs",
-    "Debuffs",
+    --"Debuffs",
     "Health",
     "Mana",
     "Combopoints",
@@ -57,6 +57,49 @@ local conditionsComparer = {
     "more than",
     "less than",
     "equals",
+}
+
+
+local conditionTree = {
+    ["Player"] = {
+        ["Buffs"] = {
+            "contains",
+            "more than",
+            "less than"
+        },
+        ["Health"] = {
+            "more than",
+            "less than",
+            "equals"
+        },
+        ["Mana"] = {
+            "more than",
+            "less than",
+            "equals"
+        },
+        ["Combopoints"] = {
+            "more than",
+            "less than",
+            "equals"
+        },
+    },
+    ["Target"] = {
+        ["Buffs"] = {
+            "contains",
+            "more than",
+            "less than"
+        },
+        ["Health"] = {
+            "more than",
+            "less than",
+            "equals"
+        },
+       ["Mana"] = {
+            "more than",
+            "less than",
+            "equals"
+        },
+    }
 }
 
 
@@ -94,6 +137,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     conditionPickerFrame:SetWidth(300)
     conditionPickerFrame:SetHeight(400)
     conditionPickerFrame:SetLayout("List")
+    conditionPickerFrame:EnableResize(false)
     conditionPickerFrame.title:SetScript("OnMouseDown", nil)
     conditionPickerFrame.frame:SetFrameStrata("HIGH")
 
@@ -101,47 +145,65 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     addConditionLabel:SetFullWidth(true)
     addConditionLabel:SetText("Add Condition to: " .. rotaTitle .. " Spell: " .. rotaSpell)
 
+    local saveButton = AceGUI:Create("Button")
+    saveButton:SetDisabled(true)
+
+    local drop1 = false
+    local drop2 = false
+    local drop3 = false
+    local edittext = false
+
     local unitPickerDropdown = AceGUI:Create("Dropdown")
     unitPickerDropdown:SetList(conditionsUnit)
     unitPickerDropdown:SetLabel("Unit Picker")
     unitPickerDropdown:SetFullWidth()
-    unitPickerDropdown:SetHeight(75)
     unitPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
         --print("unit: " .. conditionsUnit[key])
         baseConditon.unit = conditionsUnit[key]
+        drop1 = true
+        saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
     end)
 
     local subjectPickerDropdown = AceGUI:Create("Dropdown")
     subjectPickerDropdown:SetList(conditionsSubjects)
     subjectPickerDropdown:SetLabel("Subject Picker")
     subjectPickerDropdown:SetFullWidth()
-    subjectPickerDropdown:SetHeight(75)
     subjectPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
         --print("subject: " .. conditionsSubjects[key])
         baseConditon.subject = conditionsSubjects[key]
+        drop2 = true
+        saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
     end)
 
     local comparerPickerDropdown = AceGUI:Create("Dropdown")
     comparerPickerDropdown:SetList(conditionsComparer)
     comparerPickerDropdown:SetLabel("Comparer Picker")
     comparerPickerDropdown:SetFullWidth()
-    comparerPickerDropdown:SetHeight(75)
     comparerPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
         --print("comparer: " .. conditionsComparer[key])
         baseConditon.comparer = conditionsComparer[key]
+        drop3 = true
+        saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
     end)
 
     local searchValue = AceGUI:Create("EditBox")
     searchValue:SetFullWidth(true)
     searchValue:SetLabel("Search: ")
     searchValue:DisableButton(true)
+    searchValue:SetCallback("OnTextChanged", function(widget, event, text) 
+        if text ~= ""  then
+            edittext = true
+        else
+            edittext = false
+        end
+        saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
+    end)  
 
     local buttonsContainer = AceGUI:Create("SimpleGroup")
     buttonsContainer:SetFullWidth(true)
     buttonsContainer:SetFullHeight(true)
     buttonsContainer:SetLayout("Flow")
 
-    local saveButton = AceGUI:Create("Button")
     saveButton:SetText("Save")
     saveButton:SetWidth(75) 
     saveButton:SetCallback("OnClick", function(widget) 
@@ -202,7 +264,9 @@ function DPSGenie:showSpellPicker(rotaTitle)
         if spellLink and usable and not isPassive then
             local spellID = tonumber(string.match(spellLink, "spell:(%d+)"))
             local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(spellID)
-            templist[name] = spellID
+            if IsHarmfulSpell(name) or IsHelpfulSpell(name) then
+                templist[format("|T%s:32:32|t %s", icon, name)] = spellID
+            end
             --print(spellID)
         end
         end
@@ -223,16 +287,20 @@ function DPSGenie:showSpellPicker(rotaTitle)
     local label = AceGUI:Create("InteractiveLabel")
     label:SetWidth(300)
 
+
+    local saveButton = AceGUI:Create("Button")
+    saveButton:SetDisabled(true)
+
     local selectedSpell
 
     local spellPickerDropdown = AceGUI:Create("Dropdown")
     spellPickerDropdown:SetList(list)
     spellPickerDropdown:SetLabel("Spell Picker")
     spellPickerDropdown:SetFullWidth()
-    spellPickerDropdown:SetHeight(75)
     spellPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
         local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(key)
         selectedSpell = key
+        saveButton:SetDisabled(false)
         label:SetImage(icon)
         label:SetImageSize(32, 32)
         label:SetText(name)
@@ -251,7 +319,6 @@ function DPSGenie:showSpellPicker(rotaTitle)
     buttonsContainer:SetFullHeight(true)
     buttonsContainer:SetLayout("Flow")
 
-    local saveButton = AceGUI:Create("Button")
     saveButton:SetText("Save")
     saveButton:SetWidth(75) 
     saveButton:SetCallback("OnClick", function(widget) 

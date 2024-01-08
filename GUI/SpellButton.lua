@@ -202,17 +202,22 @@ DPSGenieButtonHolderFrame:EnableMouse(true)
 DPSGenieButtonHolderFrame:RegisterForDrag("LeftButton")
 DPSGenieButtonHolderFrame:SetScript("OnDragStart", DPSGenieButtonHolderFrame.StartMoving)
 DPSGenieButtonHolderFrame:SetScript("OnDragStop", DPSGenieButtonHolderFrame.StopMovingOrSizing)
+DPSGenieButtonHolderFrame:SetScript('OnEnter', function() 
+    DPSGenieButtonHolderFrame:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 }
+    })
+    DPSGenieButtonHolderFrame:SetBackdropColor(0, 0, 0, 0.7)
+end)
+DPSGenieButtonHolderFrame:SetScript('OnLeave', function() 
+    DPSGenieButtonHolderFrame:SetBackdrop(nil)
+    DPSGenieButtonHolderFrame:SetBackdropColor(0, 0, 0, 1) 
+end)
 
--- Rahmen und Hintergrund für den Hauptframe hinzufügen
-DPSGenieButtonHolderFrame:SetBackdrop({
-    bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-    tile = true,
-    tileSize = 16,
-    edgeSize = 16,
-    insets = { left = 4, right = 4, top = 4, bottom = 4 }
-})
-DPSGenieButtonHolderFrame:SetBackdropColor(0, 0, 0, 0.7)
 
 -- Erstelle den ersten Frame mit Textur
 DPSGenieButtonHolderFrame1 = CreateFrame("Frame", "DPSGenieButtonHolderFrame1", DPSGenieButtonHolderFrame)

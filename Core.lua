@@ -49,10 +49,15 @@ function DPSGenie:runRotaTable()
         --table.sort(testTable)
 
         for index, value in ipairs(acitveRota.spells) do
- 
+
             local unit = "target"
 
             local spell = value["spellId"]
+
+            local isKnown = IsSpellKnown(spell, false)
+            if not isKnown then
+                break
+            end
 
             local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spell)
 
