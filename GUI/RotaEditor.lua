@@ -39,6 +39,21 @@ StaticPopupDialogs["CONFIRM_DELETE_ROTA"] = {
     preferredIndex = 3,
 }
 
+StaticPopupDialogs["CONFIRM_DELETE_CONDITION"] = {
+    text = "Do you want to delete the Condition?",
+    button1 = "Yes",
+    button2 = "No",
+    OnAccept = function (self, data, data2)
+        print("delete condition: " .. data.c .. " from spell " .. data.s .. " from rota " .. data2)
+        DPSGenie:removeConditionFromSpell(data2, data.s, data.c)
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+
 local conditionsUnit = {
     "Player",
     "Target",
@@ -49,6 +64,8 @@ local conditionsSubjects = {
     --"Debuffs",
     "Health",
     "Mana",
+    "Rage",
+    "Energy",
     "Combopoints",
 }
 
@@ -73,6 +90,16 @@ local conditionTree = {
             "equals"
         },
         ["Mana"] = {
+            "more than",
+            "less than",
+            "equals"
+        },
+        ["Rage"] = {
+            "more than",
+            "less than",
+            "equals"
+        },
+        ["Energy"] = {
             "more than",
             "less than",
             "equals"
@@ -368,6 +395,12 @@ function DPSGenie:removeSpellFromRota(rota, index)
     DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
 end
 
+function DPSGenie:removeConditionFromSpell(rota, spell, index)
+    table.remove(customRotas[rota].spells[spell].conditions, index)
+    DPSGenie:SaveCustomRota(rota, customRotas[rota])
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+end
+
 function DPSGenie:swapSpells(rota, index1, index2)
     tbl = customRotas[rota]
     if tbl and tbl.spells and tbl.spells[index1] and tbl.spells[index2] then
@@ -446,15 +479,17 @@ end
 
 function DPSGenie:DrawWelcomeWindow(container)
 
+    local dpsgVersion = GetAddOnMetadata("DPSGenie", "Version") 
+
     local groupScrollContainer = AceGUI:Create("SimpleGroup")
     groupScrollContainer:SetFullWidth(true)
     groupScrollContainer:SetFullHeight(true)
     groupScrollContainer:SetLayout("List")
-    container:AddChild(groupScrollContainer)
+    
 
     local DPSGenieHeader = AceGUI:Create("Heading")
     DPSGenieHeader:SetFullWidth(true)
-    DPSGenieHeader:SetText("DPSGenie - v0.1-alpha")
+    DPSGenieHeader:SetText("DPSGenie - " .. dpsgVersion)
     groupScrollContainer:AddChild(DPSGenieHeader)
 
     local DPSGenieImage = AceGUI:Create("Icon")
@@ -491,6 +526,8 @@ Ready to unleash your full potential? Let the magic begin!]])
     --groupScrollContainer:AddChild(DPSGenieWelcomeText)
 
 
+    groupScrollContainer:SetCallback("OnRelease", function(widget) DPSGenieImage.frame:Hide() DPSGenieWelcomeText.frame:Hide() end)
+    container:AddChild(groupScrollContainer)
 
 end
 
@@ -783,7 +820,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
 
                     local currentConditionPartSearch = AceGUI:Create("Label")
                     currentConditionPartSearch:SetFullWidth(true)
-                    if tonumber(vc.search) > 100 then
+                    if vc.subject == "Buffs" then
                         local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vc.search)
                         currentConditionPartSearch:SetText("\124cFF00FF00Search:\124r " .. name .. " (ID: " .. vc.search .. ")")
                     else
@@ -791,13 +828,37 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                     end
                     conditionPartHolder:AddChild(currentConditionPartSearch)
 
+
+                    local deleteConditionButton = AceGUI:Create("Button")
+                    deleteConditionButton:SetText("Delete Spell")
+                    deleteConditionButton:SetWidth(20)  
+                    deleteConditionButton:SetHeight(20)          
+                    deleteConditionButton:SetCallback("OnClick", function(widget) 
+                        local dialog = StaticPopup_Show("CONFIRM_DELETE_CONDITION")
+                        if dialog then
+                            dialog.data = {s = ks, c = kc}
+                            dialog.data2 = rotaTitle
+                        end
+                    end)   
+                    table.insert(customButtons, deleteConditionButton)
+
+                    deleteConditionButton.frame:ClearAllPoints()
+                    deleteConditionButton.frame:SetParent(conditionPartHolder.frame)
+                    deleteConditionButton.frame:SetPoint("TOPRIGHT", conditionPartHolder.frame, "TOPRIGHT", -10, -25)
+                    deleteConditionButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\close.tga")
+                    if not readOnly then
+                        deleteConditionButton.frame:Show()
+                    end
+
+                    --[[
+                    --TODO: reenable edit button
                     local editButton = AceGUI:Create("Button")
                     editButton:SetText("Edit")
                     editButton:SetWidth(75)    
                     if not readOnly then              
                         conditionPartHolder:AddChild(editButton)
                     end
-
+                    ]]
                     rotaPartHolder:AddChild(conditionPartHolder)
                 end
             end
@@ -831,7 +892,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             
             deleteSpellButton.frame:ClearAllPoints()
             deleteSpellButton.frame:SetParent(rotaPartHolder.frame)
-            deleteSpellButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -10, -30)
+            deleteSpellButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -10, -25)
             deleteSpellButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\close.tga")
             if not readOnly then
                 deleteSpellButton.frame:Show()
@@ -847,7 +908,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             
             moveSpellUpButton.frame:ClearAllPoints()
             moveSpellUpButton.frame:SetParent(rotaPartHolder.frame)
-            moveSpellUpButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -35, -30)
+            moveSpellUpButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -35, -25)
             moveSpellUpButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\up.tga")
             if ks ~= 1 then
                 if not readOnly then
@@ -870,7 +931,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             if ks == 1 then
                 xpos = -35
             end
-            moveSpellDownButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", xpos, -30)
+            moveSpellDownButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", xpos, -25)
             moveSpellDownButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\down.tga")
             if ks ~= #rotaData.spells then
                 if not readOnly then

@@ -129,6 +129,14 @@ function DPSGenie:runRotaTable()
                                             conditionsPassed = conditionsPassed + 1
                                         end
                                     --buffs less than end
+                                    --buffs more than start
+                                    elseif condition.comparer == "more than" then
+                                        DPSGenie:debug("-- c".. cindex ..": more than: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
+                                        if not (count <= tonumber(condition.compare_value)) then
+                                            DPSGenie:debug("conditon passed!")
+                                            conditionsPassed = conditionsPassed + 1
+                                        end
+                                    --buffs more than end
                                     --buffs contains start
                                     elseif condition.comparer == "contains" then
                                         DPSGenie:debug("-- c" .. cindex .. ": contains: " .. auraName .. " count: " .. count)
@@ -140,17 +148,52 @@ function DPSGenie:runRotaTable()
                                     end
                                     
                                 --buffs end
-                                --healt start
-                                elseif condition.subject == "Health" then
-                                    DPSGenie:debug("- c" .. cindex ..": Health condition")
+                                --health/powertype start
+                                elseif condition.subject == "Health" or condition.subject == "Mana" or condition.subject == "Rage" or condition.subject == "Energy" then
+                                    local percent = 0
                                     local unit = string.lower(condition.unit)
-                                    local maxHP = UnitHealthMax(unit)
-                                    local curHP = UnitHealth(unit)
-                                    local percent = (curHP / maxHP) * 100
-                                    DPSGenie:debug("current HP of " .. unit .. ": " .. percent .. "%")
-                                    DPSGenie:debug("conditon passed!")
-                                    conditionsPassed = conditionsPassed + 1
-                                --healt end
+
+                                    if condition.subject == "Health" then
+                                        DPSGenie:debug("- c" .. cindex ..": Health condition")
+                                        local max = UnitHealthMax(unit)
+                                        local cur = UnitHealth(unit)
+                                        percent = (cur / max) * 100
+                                    else
+                                        local powertypes = {
+                                            ["Mana"] = 0,
+                                            ["Rage"] = 1,
+                                            ["Focus"] = 2,
+                                            ["Energy"] = 3,
+                                        }
+                                        local powertype = powertypes[condition.subject]
+                                        DPSGenie:debug("- c" .. cindex ..": " .. condition.subject .. " condition")
+                                        local max = UnitPowerMax(unit, powertype)
+                                        local cur = UnitPower(unit, powertype)
+                                        percent = (cur / max) * 100
+                                    end
+
+                                    percent = math.floor(percent)
+
+                                    DPSGenie:debug("-- c" .. cindex .." current " .. condition.subject .. " of " .. unit .. ": " .. percent .. "%")
+                                    DPSGenie:debug("-- c" .. cindex .." comparer: " .. condition.comparer .. " search: " .. condition.search)
+
+                                    if condition.comparer == "less than" then
+                                        if not (percent >= tonumber(condition.search)) then
+                                            DPSGenie:debug(" less than conditon passed!")
+                                            conditionsPassed = conditionsPassed + 1
+                                        end
+                                    elseif condition.comparer == "more than" then
+                                        if not (percent <= tonumber(condition.search)) then
+                                            DPSGenie:debug(" more than conditon passed!")
+                                            conditionsPassed = conditionsPassed + 1
+                                        end
+                                    elseif condition.comparer == "equals" then
+                                        if percent == tonumber(condition.search) then
+                                            DPSGenie:debug(" equals conditon passed!")
+                                            conditionsPassed = conditionsPassed + 1
+                                        end
+                                    end
+                                --health/powertype end
                                 end
                             end
                         end
