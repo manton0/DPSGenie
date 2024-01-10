@@ -398,6 +398,11 @@ function DPSGenie:GetRotaList()
 
 	local tree = 
 	{ 
+        {
+			value = "welcome",
+			text = "Welcome",
+            icon = "Interface\\Icons\\inv_misc_book_06",
+		},
 		{
 			value = "newRotation",
 			text = "new Rotation",
@@ -424,7 +429,7 @@ function DPSGenie:GetRotaList()
 
     for k, v in pairs(defaultRotas) do
         local entry = {value = v.name, text = v.name, icon = v.icon}
-        table.insert(tree[3].children, entry)
+        table.insert(tree[4].children, entry)
     end 
 
     for k, v in pairs(customRotas) do
@@ -433,11 +438,62 @@ function DPSGenie:GetRotaList()
         --    activeName = "\124cFF00FF00" .. v.name .. "\124r"
         --end
         local entry = {value = v.name, text = activeName, icon = v.icon}
-        table.insert(tree[4].children, entry)
+        table.insert(tree[5].children, entry)
     end 
 
 	return tree
 end
+
+function DPSGenie:DrawWelcomeWindow(container)
+
+    local groupScrollContainer = AceGUI:Create("SimpleGroup")
+    groupScrollContainer:SetFullWidth(true)
+    groupScrollContainer:SetFullHeight(true)
+    groupScrollContainer:SetLayout("List")
+    container:AddChild(groupScrollContainer)
+
+    local DPSGenieHeader = AceGUI:Create("Heading")
+    DPSGenieHeader:SetFullWidth(true)
+    DPSGenieHeader:SetText("DPSGenie - v0.1-alpha")
+    groupScrollContainer:AddChild(DPSGenieHeader)
+
+    local DPSGenieImage = AceGUI:Create("Icon")
+    DPSGenieImage:SetImage("Interface\\Addons\\DPSGenie\\Images\\genie.tga")
+    DPSGenieImage:SetImageSize(256, 256)
+    DPSGenieImage.frame:SetPushedTexture(nil, "ARTWORK")
+    DPSGenieImage.frame:SetHighlightTexture(nil, "ARTWORK")
+    DPSGenieImage.frame:ClearAllPoints()
+    DPSGenieImage.frame:SetParent(groupScrollContainer.frame)
+    DPSGenieImage.frame:SetPoint("TOP", groupScrollContainer.frame, "TOP", 0, -20)
+    DPSGenieImage.frame:EnableMouse(false)
+    DPSGenieImage.frame:Show()
+    --groupScrollContainer:AddChild(DPSGenieImage)
+
+    local DPSGenieWelcomeText = AceGUI:Create("Label")
+    --DPSGenieWelcomeText:SetFullWidth(true)
+    DPSGenieWelcomeText:SetHeight(50)
+    DPSGenieWelcomeText:SetWidth(380)
+    DPSGenieWelcomeText:SetText([[Ahoy, brave adventurers of Azeroth!
+Your wishes are my commands with the dazzling, brand-new addon that's here to revolutionize your gameplay.
+Ever felt lost in the heat of battle, unsure of your next move?
+Fear not, for I, your digital genie, have conjured up the ultimate solution!
+Introducing DPSGenie, an addon that's all-knowing and all-seeing.
+Whether it's the fiercest dragon or the trickiest dungeon, I'll whisper in your ear the perfect spell or attack, ensuring you never miss a beat.
+Say goodbye to missed buffs and overlooked procs; with my guidance, your DPS will soar to new, unimaginable heights!
+Let's turn the tables on your foes and show them the true power of a master strategist. 
+Ready to unleash your full potential? Let the magic begin!]])
+
+    DPSGenieWelcomeText.frame:ClearAllPoints()
+    DPSGenieWelcomeText.frame:SetParent(groupScrollContainer.frame)
+    DPSGenieWelcomeText.frame:SetPoint("TOP", DPSGenieImage.frame, "BOTTOM", 0, -10)
+    DPSGenieWelcomeText.label:SetWidth(380)
+    DPSGenieWelcomeText.frame:Show()
+    --groupScrollContainer:AddChild(DPSGenieWelcomeText)
+
+
+
+end
+
 
 function DPSGenie:CreateRotaBuilder()
     Rotaframe = AceGUI:Create("Window")
@@ -471,6 +527,8 @@ function DPSGenie:CreateRotaBuilder()
             DPSGenie:DrawNewRotaWindow(container)
         elseif selected == "importRotation" then
             print("Import rotation.")
+        elseif selected == "welcome" then
+            DPSGenie:DrawWelcomeWindow(container)
         else
             -- Finding out the selected path to get the rotaTitle
             -- Not conerned with ever clicking on Active/Inactive itself
