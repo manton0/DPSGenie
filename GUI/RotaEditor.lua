@@ -645,6 +645,9 @@ function DPSGenie:CreateRotaBuilder()
 
     rotaTree:SelectByPath("defaultRotations")
     rotaTree:SelectByPath("customRotations")
+    rotaTree:SelectByPath("welcome")
+
+    --TODO: if active rota, select by name
 end
 
 function DPSGenie:DrawNewRotaWindow(container)
