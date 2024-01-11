@@ -166,7 +166,11 @@ function DPSGenie:SetFirstSuggestSpell(spellId, iconModifiers)
         if actionSort[name] then
             local keybind = shortCut[actionSort[name]]
             if actionSort[name] <= 12 then
-                DPSGenie:ShowPulseFrame(_G["BT4Button"..tostring(actionSort[name])])
+                if _G["BT4Button1"] and _G["BT4Button1"]:IsVisible() then
+                    DPSGenie:ShowPulseFrame(_G["BT4Button"..tostring(actionSort[name])])
+                else
+                    DPSGenie:ShowPulseFrame(_G["ActionButton"..tostring(actionSort[name])])
+                end
             end
             DPSGenieButtonHolderFrame1.text:SetText(tostring(keybind))
         else

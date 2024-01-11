@@ -14,12 +14,26 @@ DPSGenie.playerBuffs = {}
 DPSGenie.targetBuffs = {}
 
 
+local function tablelength(T)
+    local count = 0
+    for _ in pairs(T) do count = count + 1 end
+    return count
+end
+
+function DPSGenie:getCapturedPlayerBuffs()
+    return DPSGenie.playerBuffs
+end
+
+function DPSGenie:getCapturedPlayerBuffsCount()
+    return tablelength(DPSGenie.playerBuffs)
+end
+
 function DPSGenie:showCapture()
     if not Captureframe then
         Captureframe = AceGUI:Create("Window")
         Captureframe:SetTitle("DPSGenie Aura Capture")
         Captureframe:SetLayout("Flow")
-        Captureframe:SetWidth(800)
+        Captureframe:SetWidth(250)
 
         startButton = AceGUI:Create("Button")
         startButton:SetText("Start Capture")

@@ -11,8 +11,8 @@ DPSGenie.lua
 GUI\Utils.lua
 Rotas\default.lua
 Rotas\custom.lua
+GUI\SpellCapture.lua
 GUI\RotaEditor.lua
 GUI\CodeEditor.lua
-GUI\SpellCapture.lua
 GUI\SpellButton.lua
 Core.lua

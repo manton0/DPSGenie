@@ -54,29 +54,6 @@ StaticPopupDialogs["CONFIRM_DELETE_CONDITION"] = {
 }
 
 
-local conditionsUnit = {
-    "Player",
-    "Target",
-}
-
-local conditionsSubjects = {
-    "Buffs",
-    --"Debuffs",
-    "Health",
-    "Mana",
-    "Rage",
-    "Energy",
-    "Combopoints",
-}
-
-local conditionsComparer = {
-    "contains",
-    "more than",
-    "less than",
-    "equals",
-}
-
-
 local conditionTree = {
     ["Player"] = {
         ["Buffs"] = {
@@ -148,6 +125,16 @@ function DPSGenie:dumpTable(o)
     end
  end
 
+
+local function get_keys(t)
+    local keys = {}
+    for key,_ in pairs(t) do
+        table.insert(keys, key)
+    end
+    return keys
+end
+
+
 function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
 
     local baseConditon = {
@@ -170,7 +157,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
 
     local addConditionLabel = AceGUI:Create("Label")
     addConditionLabel:SetFullWidth(true)
-    addConditionLabel:SetText("Add Condition to: " .. rotaTitle .. " Spell: " .. rotaSpell)
+    addConditionLabel:SetText("Add Condition to: " .. rotaTitle .. " Spell: " .. rotaSpell .. " b: " .. DPSGenie:getCapturedPlayerBuffsCount())
 
     local saveButton = AceGUI:Create("Button")
     saveButton:SetDisabled(true)
@@ -178,42 +165,110 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     local drop1 = false
     local drop2 = false
     local drop3 = false
+    local drop4 = false
     local edittext = false
 
     local unitPickerDropdown = AceGUI:Create("Dropdown")
-    unitPickerDropdown:SetList(conditionsUnit)
+    local subjectPickerDropdown = AceGUI:Create("Dropdown")
+    subjectPickerDropdown:SetList({})
+    local comparerPickerDropdown = AceGUI:Create("Dropdown")
+    comparerPickerDropdown:SetList({})
+    local buffPickerDropdown = AceGUI:Create("Dropdown")
+    local searchValue = AceGUI:Create("EditBox")
+
+    local unitPickerDropdownList = get_keys(conditionTree)
+    local subjectPickerDropdownList = {}
+    local comparerPickerDropdownList = {}
+
+    local unitPickerDropdownListKey 
+    local subjectPickerDropdownListKey
+
+    unitPickerDropdown:SetList(unitPickerDropdownList)
     unitPickerDropdown:SetLabel("Unit Picker")
     unitPickerDropdown:SetFullWidth()
     unitPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
-        --print("unit: " .. conditionsUnit[key])
-        baseConditon.unit = conditionsUnit[key]
+        --print("unit: " .. unitPickerDropdownList[key])
+        unitPickerDropdownListKey = key
+        baseConditon.unit = unitPickerDropdownList[key]
+        subjectPickerDropdownList = get_keys(conditionTree[unitPickerDropdownList[unitPickerDropdownListKey]])
+        subjectPickerDropdown:SetList(subjectPickerDropdownList)
+        subjectPickerDropdown:SetValue(1)
+        subjectPickerDropdown:Fire("OnValueChanged")
+        --comparerPickerDropdown:SetList({})
+        --comparerPickerDropdown:SetText("")
+        --comparerPickerDropdown:Fire("OnValueChanged")
         drop1 = true
         saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
     end)
 
-    local subjectPickerDropdown = AceGUI:Create("Dropdown")
-    subjectPickerDropdown:SetList(conditionsSubjects)
+    
+    
     subjectPickerDropdown:SetLabel("Subject Picker")
     subjectPickerDropdown:SetFullWidth()
     subjectPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
-        --print("subject: " .. conditionsSubjects[key])
-        baseConditon.subject = conditionsSubjects[key]
+        key = key or 1
+        --print("subject: " .. subjectPickerDropdownList[key])
+        subjectPickerDropdownListKey = key
+        baseConditon.subject = subjectPickerDropdownList[key]
+
+        if baseConditon.subject == "Buffs" then
+            --show buffpicker, hide search
+            searchValue.frame:Hide()
+            buffPickerDropdown.frame:Show()
+        else
+            searchValue.frame:Show()
+            buffPickerDropdown.frame:Hide()
+        end
+
+        comparerPickerDropdownList = conditionTree[unitPickerDropdownList[unitPickerDropdownListKey]][subjectPickerDropdownList[subjectPickerDropdownListKey]]
+        comparerPickerDropdown:SetList(comparerPickerDropdownList)
+        comparerPickerDropdown:SetValue(1)
+        comparerPickerDropdown:Fire("OnValueChanged")
         drop2 = true
         saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
     end)
 
-    local comparerPickerDropdown = AceGUI:Create("Dropdown")
-    comparerPickerDropdown:SetList(conditionsComparer)
+    
     comparerPickerDropdown:SetLabel("Comparer Picker")
     comparerPickerDropdown:SetFullWidth()
-    comparerPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
-        --print("comparer: " .. conditionsComparer[key])
-        baseConditon.comparer = conditionsComparer[key]
+    comparerPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key)
+        key = key or 1
+        --print("comparer: " .. conditionTree[unitPickerDropdownList[unitPickerDropdownListKey]][subjectPickerDropdownList[subjectPickerDropdownListKey]][key])
+        baseConditon.comparer = conditionTree[unitPickerDropdownList[unitPickerDropdownListKey]][subjectPickerDropdownList[subjectPickerDropdownListKey]][key]
+
+        if baseConditon.subject == "Buffs" and (baseConditon.comparer == "more than" or baseConditon.comparer == "less than") then
+            --show buffpicker, hide search
+            searchValue.frame:Show()
+            buffPickerDropdown.frame:Show()
+        elseif baseConditon.subject == "Buffs" and baseConditon.comparer == "contains" then
+            searchValue.frame:Hide()
+            buffPickerDropdown.frame:Show()
+        end
+
         drop3 = true
         saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
     end)
 
-    local searchValue = AceGUI:Create("EditBox")
+
+    --buffpicker needs condition -> only if subject buffs and respecting unit
+    local list = {}
+    for k, v in pairs(DPSGenie:getCapturedPlayerBuffs()) do
+        local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(k)
+        list[k] = format("|T%s:32:32|t %s", icon, name)
+    end 
+
+    buffPickerDropdown:SetLabel("Buff Select")
+    buffPickerDropdown:SetList(list)
+    buffPickerDropdown:SetFullWidth()
+    buffPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
+        --key = key or 1
+        --print("buff select: " .. key)
+        baseConditon.compare_value = key
+        drop4 = true
+        --saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
+    end)
+    buffPickerDropdown.frame:Hide()
+
     searchValue:SetFullWidth(true)
     searchValue:SetLabel("Search: ")
     searchValue:DisableButton(true)
@@ -236,6 +291,12 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     saveButton:SetCallback("OnClick", function(widget) 
         --AceGUI:Release(widget.parent.parent)
         baseConditon.search = searchValue:GetText()
+
+        --swap for convenience
+        if baseConditon.search and baseConditon.compare_value then
+            baseConditon.search, baseConditon.compare_value = baseConditon.compare_value, baseConditon.search
+        end
+
         --print("add condition to " .. rotaTitle .. " Spell " .. rotaSpell)
         --print(DPSGenie:dumpTable(baseConditon))
         DPSGenie:addConditionToSpell(rotaTitle, rotaSpell, baseConditon)
@@ -260,10 +321,13 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     conditionPickerFrame:AddChild(unitPickerDropdown)
     conditionPickerFrame:AddChild(subjectPickerDropdown)
     conditionPickerFrame:AddChild(comparerPickerDropdown)
+    conditionPickerFrame:AddChild(buffPickerDropdown)
+    buffPickerDropdown.frame:Hide()
     conditionPickerFrame:AddChild(searchValue)
     conditionPickerFrame:AddChild(buttonsContainer)
-    
+
     conditionPickerFrame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+    conditionPickerFrame:SetCallback("OnAcquire", function(widget) print("OnAcquire") buffPickerDropdown.frame:Hide() end)
     conditionPickerFrame:Show()
 
 end
