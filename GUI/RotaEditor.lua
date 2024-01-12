@@ -529,14 +529,16 @@ function DPSGenie:GetRotaList()
         table.insert(tree[4].children, entry)
     end 
 
-    for k, v in pairs(customRotas) do
-        local activeName = v.name
-        --if v.name == DPSGenie:LoadSettingFromProfile("activeRota") then
-        --    activeName = "\124cFF00FF00" .. v.name .. "\124r"
-        --end
-        local entry = {value = v.name, text = activeName, icon = v.icon}
-        table.insert(tree[5].children, entry)
-    end 
+    if customRotas then
+        for k, v in pairs(customRotas) do
+            local activeName = v.name
+            --if v.name == DPSGenie:LoadSettingFromProfile("activeRota") then
+            --    activeName = "\124cFF00FF00" .. v.name .. "\124r"
+            --end
+            local entry = {value = v.name, text = activeName, icon = v.icon}
+            table.insert(tree[5].children, entry)
+        end 
+    end
 
 	return tree
 end
@@ -647,7 +649,8 @@ function DPSGenie:CreateRotaBuilder()
     rotaTree:SelectByPath("customRotations")
     rotaTree:SelectByPath("welcome")
 
-    --TODO: if active rota, select by name
+    --TODO: if active rota, select by name -> but, active rota dont have to be the current version in the editor...
+    --TODO: add versioning to rotas, lastedit timestamp or whatever
 end
 
 function DPSGenie:DrawNewRotaWindow(container)
