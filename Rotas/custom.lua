@@ -3,7 +3,7 @@ DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 DPSGenie:Print("Custom Rotas loaded!")
 
 local defaultSettings = {
-    global = { }
+    global = { customRotas = {} }
 }
 
 function DPSGenie:OnInitialize()
