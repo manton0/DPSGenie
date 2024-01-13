@@ -59,7 +59,8 @@ local conditionTree = {
         ["Buffs"] = {
             "contains",
             "more than",
-            "less than"
+            "less than",
+            "equals"
         },
         ["Health"] = {
             "more than",
@@ -157,7 +158,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
 
     local addConditionLabel = AceGUI:Create("Label")
     addConditionLabel:SetFullWidth(true)
-    addConditionLabel:SetText("Add Condition to: " .. rotaTitle .. " Spell: " .. rotaSpell .. " b: " .. DPSGenie:getCapturedPlayerBuffsCount())
+    addConditionLabel:SetText("Add Condition to: " .. rotaTitle .. " Spell: " .. rotaSpell)
 
     local saveButton = AceGUI:Create("Button")
     saveButton:SetDisabled(true)
@@ -183,6 +184,8 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     local unitPickerDropdownListKey 
     local subjectPickerDropdownListKey
 
+    local buffSelectList = {}
+
     unitPickerDropdown:SetList(unitPickerDropdownList)
     unitPickerDropdown:SetLabel("Unit Picker")
     unitPickerDropdown:SetFullWidth()
@@ -198,7 +201,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
         --comparerPickerDropdown:SetText("")
         --comparerPickerDropdown:Fire("OnValueChanged")
         drop1 = true
-        saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
+        saveButton:SetDisabled(not (drop1 and drop2 and drop3))
     end)
 
     
@@ -215,6 +218,22 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
             --show buffpicker, hide search
             searchValue.frame:Hide()
             buffPickerDropdown.frame:Show()
+            buffSelectList = {}
+            local buffSelect 
+
+            if baseConditon.unit == "Player" then
+                buffSelect = DPSGenie:getCapturedPlayerBuffs()
+            else
+                buffSelect = DPSGenie:getCapturedTargetBuffs()
+            end
+
+            for k, v in pairs(buffSelect) do
+                local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(k)
+                buffSelectList[k] = format("|T%s:32:32|t %s", icon, name)
+            end
+
+            buffPickerDropdown:SetList(buffSelectList)
+
         else
             searchValue.frame:Show()
             buffPickerDropdown.frame:Hide()
@@ -225,7 +244,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
         comparerPickerDropdown:SetValue(1)
         comparerPickerDropdown:Fire("OnValueChanged")
         drop2 = true
-        saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
+        saveButton:SetDisabled(not (drop1 and drop2 and drop3))
     end)
 
     
@@ -246,19 +265,14 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
         end
 
         drop3 = true
-        saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
+        saveButton:SetDisabled(not (drop1 and drop2 and drop3))
     end)
 
 
     --buffpicker needs condition -> only if subject buffs and respecting unit
-    local list = {}
-    for k, v in pairs(DPSGenie:getCapturedPlayerBuffs()) do
-        local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(k)
-        list[k] = format("|T%s:32:32|t %s", icon, name)
-    end 
+    
 
     buffPickerDropdown:SetLabel("Buff Select")
-    buffPickerDropdown:SetList(list)
     buffPickerDropdown:SetFullWidth()
     buffPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
         --key = key or 1
@@ -278,7 +292,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
         else
             edittext = false
         end
-        saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
+        saveButton:SetDisabled(not (drop1 and drop2 and drop3))
     end)  
 
     local buttonsContainer = AceGUI:Create("SimpleGroup")
@@ -297,11 +311,15 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
             baseConditon.search, baseConditon.compare_value = baseConditon.compare_value, baseConditon.search
         end
 
+        if not baseConditon.compare_value or baseConditon.compare_value == "" then
+            baseConditon.compare_value = nil
+        end
+
         --print("add condition to " .. rotaTitle .. " Spell " .. rotaSpell)
         --print(DPSGenie:dumpTable(baseConditon))
         DPSGenie:addConditionToSpell(rotaTitle, rotaSpell, baseConditon)
         if conditionPickerFrame then
-            conditionPickerFrame:Fire("OnClose")
+            pcall(conditionPickerFrame:Fire("OnClose")) --pcall ...
         end
 
     end)                 
@@ -312,7 +330,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
     cancelButton:SetWidth(75)   
     cancelButton:SetCallback("OnClick", function(widget) 
         if conditionPickerFrame then
-            conditionPickerFrame:Fire("OnClose")
+            pcall(conditionPickerFrame:Fire("OnClose"))
         end
     end)                
     buttonsContainer:AddChild(cancelButton)

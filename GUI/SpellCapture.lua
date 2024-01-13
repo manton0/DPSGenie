@@ -28,6 +28,14 @@ function DPSGenie:getCapturedPlayerBuffsCount()
     return tablelength(DPSGenie.playerBuffs)
 end
 
+function DPSGenie:getCapturedTargetBuffs()
+    return DPSGenie.targetBuffs
+end
+
+function DPSGenie:getCapturedTargetBuffsCount()
+    return tablelength(DPSGenie.targetBuffs)
+end
+
 function DPSGenie:showCapture()
     if not Captureframe then
         Captureframe = AceGUI:Create("Window")

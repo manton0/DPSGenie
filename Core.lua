@@ -95,6 +95,7 @@ function DPSGenie:runRotaTable()
 
 
                 --quick hack to check for "gcd"
+                --TODO: make this an option
                 local gcdremain = 1.5
                 if start > 0 then
                     gcdremain = start + duration - GetTime()
@@ -111,40 +112,59 @@ function DPSGenie:runRotaTable()
                         --check all conditions, break on fail
                         if value["conditions"] then
                             DPSGenie:debug("spell " .. name .. " has " .. #value["conditions"] .. " conditions")
+
                             for cindex, condition in ipairs(value["conditions"]) do
+
                                 --buffs start
                                 if condition.subject == "Buffs" then
                                     DPSGenie:debug("- c" .. cindex ..": buff condition")
                                     local auraName = select(1, GetSpellInfo(condition.search))
                                     local unit = string.lower(condition.unit)
-                                    local name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID = UnitAura(unit, auraName)
-                                    if not count then count = 0 end    
+                                    DPSGenie:debug("-- c" .. cindex ..": buff unit: " .. unit)
+                                    --is this if needed??
+                                    local name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID
+                                    if unit == "player" then
+                                        name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID = UnitAura(unit, auraName)
+                                    else
+                                        name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID = UnitAura(unit, auraName, nil, "PLAYER|HARMFUL")
+                                    end
+                                    --if not count then count = 0 end    
                                     if not name then name = "" end
 
-                                    --buffs less than start
-                                    if condition.comparer == "less than" then
-                                        DPSGenie:debug("-- c".. cindex ..": less than: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
-                                        if not (count >= tonumber(condition.compare_value)) then
-                                            DPSGenie:debug("conditon passed!")
-                                            conditionsPassed = conditionsPassed + 1
+                                    if count ~= nil then
+                                        --buffs less than start
+                                        if condition.comparer == "less than" then
+                                            DPSGenie:debug("-- c".. cindex ..": less than: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
+                                            if not (count >= tonumber(condition.compare_value)) then
+                                                DPSGenie:debug("conditon passed!")
+                                                conditionsPassed = conditionsPassed + 1
+                                            end
+                                        --buffs less than end
+                                        --buffs more than start
+                                        elseif condition.comparer == "more than" then
+                                            DPSGenie:debug("-- c".. cindex ..": more than: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
+                                            if not (count <= tonumber(condition.compare_value)) then
+                                                DPSGenie:debug("conditon passed!")
+                                                conditionsPassed = conditionsPassed + 1
+                                            end
+                                        --buffs more than end
+                                        --buffs equals start
+                                        elseif condition.comparer == "equals" then
+                                            DPSGenie:debug("-- c".. cindex ..": equals: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
+                                            if (count == tonumber(condition.compare_value)) then
+                                                DPSGenie:debug("conditon passed!")
+                                                conditionsPassed = conditionsPassed + 1
+                                            end
+                                        --buffs equals end
+                                        --buffs contains start
+                                        elseif condition.comparer == "contains" then
+                                            DPSGenie:debug("-- c" .. cindex .. ": contains: " .. auraName .. " count: " .. count)
+                                            if count ~= nil then
+                                                DPSGenie:debug("conditon passed!")
+                                                conditionsPassed = conditionsPassed + 1
+                                            end
+                                        --buffs contains end
                                         end
-                                    --buffs less than end
-                                    --buffs more than start
-                                    elseif condition.comparer == "more than" then
-                                        DPSGenie:debug("-- c".. cindex ..": more than: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
-                                        if not (count <= tonumber(condition.compare_value)) then
-                                            DPSGenie:debug("conditon passed!")
-                                            conditionsPassed = conditionsPassed + 1
-                                        end
-                                    --buffs more than end
-                                    --buffs contains start
-                                    elseif condition.comparer == "contains" then
-                                        DPSGenie:debug("-- c" .. cindex .. ": contains: " .. auraName .. " count: " .. count)
-                                        if count > 0 then
-                                            DPSGenie:debug("conditon passed!")
-                                            conditionsPassed = conditionsPassed + 1
-                                        end
-                                    --buffs contains end
                                     end
                                     
                                 --buffs end
@@ -194,6 +214,27 @@ function DPSGenie:runRotaTable()
                                         end
                                     end
                                 --health/powertype end
+                                --combopoints start
+                                elseif condition.subject == "Combopoints" then
+                                    DPSGenie:debug("- c" .. cindex ..": Combopoints condition")
+                                    local comboPoints = GetComboPoints("player", "target")
+                                    if condition.comparer == "less than" then
+                                        if not (comboPoints >= tonumber(condition.search)) then
+                                            DPSGenie:debug(" less than conditon passed!")
+                                            conditionsPassed = conditionsPassed + 1
+                                        end
+                                    elseif condition.comparer == "more than" then
+                                        if not (comboPoints <= tonumber(condition.search)) then
+                                            DPSGenie:debug(" more than conditon passed!")
+                                            conditionsPassed = conditionsPassed + 1
+                                        end
+                                    elseif condition.comparer == "equals" then
+                                        if comboPoints == tonumber(condition.search) then
+                                            DPSGenie:debug(" equals conditon passed!")
+                                            conditionsPassed = conditionsPassed + 1
+                                        end
+                                    end
+                                --combopoints end
                                 end
                             end
                         end
