@@ -2,12 +2,26 @@ DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
 DPSGenie:Print("Utils loaded!")
 
-
 local showDebug = false
+local debugWindow, debugText
+local AceGUI = LibStub("AceGUI-3.0")
+
+function DPSGenie:debugEnabled()
+  return showDebug
+end
+
 function DPSGenie:debug(text)
-    if showDebug then
-        ChatFrame3:AddMessage(text)
-    end
+  if showDebug then
+    ChatFrame3:AddMessage(text)
+  end
+end
+
+function DPSGenie:stateToColor(state, compare)
+  if state == compare then
+    return "|cFF00FF00" .. state .. "|r"
+  else
+    return "|cFFFF0000" .. state .. "|r"
+  end
 end
 
 
@@ -29,7 +43,64 @@ function DPSGenie:deepcopy(o, seen)
       no = o
     end
     return no
+end
+
+
+function DPSGenie:toggleDebug()
+  showDebug = not showDebug
+  DPSGenie:Print("Debug is now: " .. tostring(showDebug));
+  if showDebug then
+    if not debugWindow then
+      DPSGenie:showDebugWindow()
+    else
+      debugWindow:Show()
+    end
+  else
+    debugWindow:Hide()
   end
+end
+
+function DPSGenie:showDebugWindow()
+  debugWindow = AceGUI:Create("Window")
+  debugWindow:SetPoint("TOPLEFT", UIParent, "TOPLEFT")
+  debugWindow:SetTitle("DPSGenie Debug Window")
+  debugWindow:SetWidth(300)
+  debugWindow:SetHeight(GetScreenHeight())
+  debugWindow:SetLayout("Fill")
+  debugWindow:EnableResize(false)
+  debugWindow.title:SetScript("OnMouseDown", nil)
+  --debugWindow.frame:SetScript("closeOnClick", nil)
+  debugWindow.frame:SetFrameStrata("HIGH")
+
+  local dialogbg = debugWindow.frame:CreateTexture(nil, "BACKGROUND")
+  dialogbg:SetTexture([[Interface\Tooltips\UI-Tooltip-Background]])
+  dialogbg:SetPoint("TOPLEFT", 8, -24)
+  dialogbg:SetPoint("BOTTOMRIGHT", -6, 8)
+  dialogbg:SetVertexColor(0, 0, 0, 1)
+
+  debugText = AceGUI:Create("Label")
+  debugText:SetFullWidth(true)
+  debugText:SetFont([[Fonts\ARIALN.TTF]], 11, nil)
+  debugText:SetText("debug|ntest")
+
+  debugWindow:AddChild(debugText)
+
+  --debugWindow:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+  debugWindow:Show()
+end
+
+function DPSGenie:setDebugWindowContent(debugTable)
+  if debugWindow:IsVisible() then
+    local tmpText = "|cFFFF0000Warning: Spellsuggest will not work while Debug is active!|nDon't use in real Combat!|r|n|n"
+    for k,v in pairs(debugTable) do
+      if string.find(v, "conditon passed!") then
+        v = "|cFF34eb77" .. v .. "|r"
+      end
+      tmpText = tmpText .. v .. "|n"
+    end
+    debugText:SetText(tmpText)
+  end
+end
 
 -- Erstelle den Hauptframe (wie ein Tooltip)
 local mainFrame = CreateFrame("Frame", "MyAddonMainFrame", UIParent)
@@ -73,5 +144,5 @@ button1:SetPoint("LEFT", buttonFrame, "LEFT", 10, 0)
 local button2 = CreateButton(buttonFrame, "Rota", "DPSGenie:showRotaBuilder()")
 button2:SetPoint("LEFT", buttonFrame, "LEFT", 80, 0)
 
-local button3 = CreateButton(buttonFrame, "None", "return")
+local button3 = CreateButton(buttonFrame, "Debug", "DPSGenie:toggleDebug()")
 button3:SetPoint("LEFT", buttonFrame, "LEFT", 150, 0)

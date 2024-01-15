@@ -92,7 +92,8 @@ local conditionTree = {
         ["Buffs"] = {
             "contains",
             "more than",
-            "less than"
+            "less than",
+            "equals"
         },
         ["Health"] = {
             "more than",
@@ -106,11 +107,6 @@ local conditionTree = {
         },
     }
 }
-
-
-function DPSGenie:showAllPicker()
-    --DPSGenie:showSpellPicker("internal test")
-end
 
 
 function DPSGenie:dumpTable(o)
@@ -368,9 +364,9 @@ function DPSGenie:showSpellPicker(rotaTitle)
         
         for j = offset + 1, offset + numSpells do
         spellLink, tradeLink = GetSpellLink(j, BOOKTYPE_SPELL)
-        usable, nomana = IsUsableSpell(j, BOOKTYPE_SPELL)
+        --usable, nomana = IsUsableSpell(j, BOOKTYPE_SPELL)
         isPassive = IsPassiveSpell(j, BOOKTYPE_SPELL);
-        if spellLink and usable and not isPassive then
+        if spellLink and not isPassive then
             local spellID = tonumber(string.match(spellLink, "spell:(%d+)"))
             local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(spellID)
             if IsHarmfulSpell(name) or IsHelpfulSpell(name) then
@@ -526,7 +522,7 @@ function DPSGenie:GetRotaList()
         {
 			value = "importRotation",
 			text = "import Rotation",
-            icon = "Interface\\Icons\\Spell_chargepositive",
+            icon = "Interface\\Addons\\DPSGenie\\Images\\save.tga",
 		},
 		{
 			value = "defaultRotations",

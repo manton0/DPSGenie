@@ -2,6 +2,12 @@ DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
 DPSGenie:Print("Core loaded!")
 
+debugTable = {}
+
+function DPSGenie:addToDebugTable(text)
+    table.insert(debugTable, text)
+end
+
 local playerStats = {}
 local targetStats = {}
 
@@ -42,6 +48,11 @@ end
 
 function DPSGenie:runRotaTable()
 
+    if DPSGenie:debugEnabled() then
+        DPSGenie:setDebugWindowContent(debugTable)
+    end
+    debugTable = {}
+
     if acitveRota then
 
         local success = false
@@ -61,14 +72,14 @@ function DPSGenie:runRotaTable()
 
             local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spell)
 
-            DPSGenie:debug("-------------------------------------------------- " .. GetTime())
-            DPSGenie:debug("Running checks and conditions for spell " .. index .. " " .. name)
+            DPSGenie:addToDebugTable("-------------------------------------------- " .. GetTime())
+            DPSGenie:addToDebugTable("Running checks and conditions for spell " .. index .. " " .. name)
 
             if IsHelpfulSpell(name) then
-                DPSGenie:debug(" - is helpful, override unit to player")
+                DPSGenie:addToDebugTable("is helpful, override unit to player")
                 unit = "player"
             else
-                DPSGenie:debug(" - is harmful")
+                DPSGenie:addToDebugTable("is harmful")
             end
 
             local usable, nomana = IsUsableSpell(name)
@@ -85,11 +96,11 @@ function DPSGenie:runRotaTable()
                 iconModifiers['vertexColor'] = {0.9, 0.5, 0.5, 0.7}
             end
 
+            DPSGenie:addToDebugTable("GetUnitName: " .. (GetUnitName(unit) or 0))
 
-            DPSGenie:debug("UnitIsDead " .. (UnitIsDead(unit) or 0))
-            DPSGenie:debug("UnitIsDeadOrGhost " .. (UnitIsDeadOrGhost("player") or 0))
-            DPSGenie:debug("GetUnitName " .. (GetUnitName(unit) or 0))
-            DPSGenie:debug("UnitExists " .. (UnitExists(unit) or 0))
+            DPSGenie:addToDebugTable("UnitIsDead: " .. DPSGenie:stateToColor((UnitIsDead(unit) or 0), 0))
+            DPSGenie:addToDebugTable("UnitIsDeadOrGhost: " .. DPSGenie:stateToColor((UnitIsDeadOrGhost("player") or 0), 0))
+            DPSGenie:addToDebugTable("UnitExists: " .. DPSGenie:stateToColor((UnitExists(unit) or 0), 1))
 
             if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) then
 
@@ -101,8 +112,13 @@ function DPSGenie:runRotaTable()
                     gcdremain = start + duration - GetTime()
                 end
 
-                DPSGenie:debug("spell " .. name .. " is usable: " .. (usable or "0"))
-                DPSGenie:debug("spell " .. name .. " spellInRange: " .. (spellInRange or "0"))
+                DPSGenie:addToDebugTable("IsUsableSpell: " .. DPSGenie:stateToColor((usable or 0), 1))
+                DPSGenie:addToDebugTable("IsSpellInRange: " .. DPSGenie:stateToColor((spellInRange or 0), 1))
+
+                local SpellHasCooldown = ((start == 0 and duration == 0) or gcdremain < 1.5)
+
+                DPSGenie:addToDebugTable("SpellHasCooldown: " .. DPSGenie:stateToColor(tostring(not SpellHasCooldown), "false"))
+
 
                 if usable and (spellInRange ~= 0 or DPSGenie.settings.showOutOfRange) and (((start == 0 and duration == 0) or gcdremain < 1.5) or (maxCharges > 0 and currentCharges > 0)) then
 
@@ -111,16 +127,19 @@ function DPSGenie:runRotaTable()
                         local conditionsPassed = 0
                         --check all conditions, break on fail
                         if value["conditions"] then
-                            DPSGenie:debug("spell " .. name .. " has " .. #value["conditions"] .. " conditions")
+                            DPSGenie:addToDebugTable("spell " .. name .. " has " .. #value["conditions"] .. " conditions")
 
                             for cindex, condition in ipairs(value["conditions"]) do
 
                                 --buffs start
                                 if condition.subject == "Buffs" then
-                                    DPSGenie:debug("- c" .. cindex ..": buff condition")
+                                    DPSGenie:addToDebugTable("- c" .. cindex ..": buff condition")
                                     local auraName = select(1, GetSpellInfo(condition.search))
                                     local unit = string.lower(condition.unit)
-                                    DPSGenie:debug("-- c" .. cindex ..": buff unit: " .. unit)
+                                    DPSGenie:addToDebugTable("-- c" .. cindex ..": buff unit: " .. unit)
+                                    
+                                    DPSGenie:addToDebugTable("-- c" .. cindex ..": buff buff: " .. auraName .. " (".. condition.search ..")")
+
                                     --is this if needed??
                                     local name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID
                                     if unit == "player" then
@@ -134,37 +153,39 @@ function DPSGenie:runRotaTable()
                                     if count ~= nil then
                                         --buffs less than start
                                         if condition.comparer == "less than" then
-                                            DPSGenie:debug("-- c".. cindex ..": less than: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
+                                            DPSGenie:addToDebugTable("-- c".. cindex ..": less than: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
                                             if not (count >= tonumber(condition.compare_value)) then
-                                                DPSGenie:debug("conditon passed!")
+                                                DPSGenie:debug("less than conditon passed!")
                                                 conditionsPassed = conditionsPassed + 1
                                             end
                                         --buffs less than end
                                         --buffs more than start
                                         elseif condition.comparer == "more than" then
-                                            DPSGenie:debug("-- c".. cindex ..": more than: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
+                                            DPSGenie:addToDebugTable("-- c".. cindex ..": more than: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
                                             if not (count <= tonumber(condition.compare_value)) then
-                                                DPSGenie:debug("conditon passed!")
+                                                DPSGenie:addToDebugTable("more than conditon passed!")
                                                 conditionsPassed = conditionsPassed + 1
                                             end
                                         --buffs more than end
                                         --buffs equals start
                                         elseif condition.comparer == "equals" then
-                                            DPSGenie:debug("-- c".. cindex ..": equals: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
+                                            DPSGenie:addToDebugTable("-- c".. cindex ..": equals: " .. auraName .. " value: " .. condition.compare_value .. " count: " .. count)
                                             if (count == tonumber(condition.compare_value)) then
-                                                DPSGenie:debug("conditon passed!")
+                                                DPSGenie:addToDebugTable("equals conditon passed!")
                                                 conditionsPassed = conditionsPassed + 1
                                             end
                                         --buffs equals end
                                         --buffs contains start
                                         elseif condition.comparer == "contains" then
-                                            DPSGenie:debug("-- c" .. cindex .. ": contains: " .. auraName .. " count: " .. count)
+                                            DPSGenie:addToDebugTable("-- c" .. cindex .. ": contains: " .. auraName .. " count: " .. count)
                                             if count ~= nil then
-                                                DPSGenie:debug("conditon passed!")
+                                                DPSGenie:addToDebugTable("contains conditon passed!")
                                                 conditionsPassed = conditionsPassed + 1
                                             end
                                         --buffs contains end
                                         end
+                                    else
+                                        DPSGenie:addToDebugTable("-- c" .. cindex ..": buff count was nil")
                                     end
                                     
                                 --buffs end
@@ -174,7 +195,7 @@ function DPSGenie:runRotaTable()
                                     local unit = string.lower(condition.unit)
 
                                     if condition.subject == "Health" then
-                                        DPSGenie:debug("- c" .. cindex ..": Health condition")
+                                        DPSGenie:addToDebugTable("- c" .. cindex ..": Health condition")
                                         local max = UnitHealthMax(unit)
                                         local cur = UnitHealth(unit)
                                         percent = (cur / max) * 100
@@ -186,7 +207,7 @@ function DPSGenie:runRotaTable()
                                             ["Energy"] = 3,
                                         }
                                         local powertype = powertypes[condition.subject]
-                                        DPSGenie:debug("- c" .. cindex ..": " .. condition.subject .. " condition")
+                                        DPSGenie:addToDebugTable("- c" .. cindex ..": " .. condition.subject .. " condition")
                                         local max = UnitPowerMax(unit, powertype)
                                         local cur = UnitPower(unit, powertype)
                                         percent = (cur / max) * 100
@@ -194,43 +215,43 @@ function DPSGenie:runRotaTable()
 
                                     percent = math.floor(percent)
 
-                                    DPSGenie:debug("-- c" .. cindex .." current " .. condition.subject .. " of " .. unit .. ": " .. percent .. "%")
-                                    DPSGenie:debug("-- c" .. cindex .." comparer: " .. condition.comparer .. " search: " .. condition.search)
+                                    DPSGenie:addToDebugTable("-- c" .. cindex .." current " .. condition.subject .. " of " .. unit .. ": " .. percent .. "%")
+                                    DPSGenie:addToDebugTable("-- c" .. cindex .." comparer: " .. condition.comparer .. " search: " .. condition.search)
 
                                     if condition.comparer == "less than" then
                                         if not (percent >= tonumber(condition.search)) then
-                                            DPSGenie:debug(" less than conditon passed!")
+                                            DPSGenie:addToDebugTable("less than conditon passed!")
                                             conditionsPassed = conditionsPassed + 1
                                         end
                                     elseif condition.comparer == "more than" then
                                         if not (percent <= tonumber(condition.search)) then
-                                            DPSGenie:debug(" more than conditon passed!")
+                                            DPSGenie:addToDebugTable("more than conditon passed!")
                                             conditionsPassed = conditionsPassed + 1
                                         end
                                     elseif condition.comparer == "equals" then
                                         if percent == tonumber(condition.search) then
-                                            DPSGenie:debug(" equals conditon passed!")
+                                            DPSGenie:addToDebugTable("equals conditon passed!")
                                             conditionsPassed = conditionsPassed + 1
                                         end
                                     end
                                 --health/powertype end
                                 --combopoints start
                                 elseif condition.subject == "Combopoints" then
-                                    DPSGenie:debug("- c" .. cindex ..": Combopoints condition")
+                                    DPSGenie:addToDebugTable("- c" .. cindex ..": Combopoints condition")
                                     local comboPoints = GetComboPoints("player", "target")
                                     if condition.comparer == "less than" then
                                         if not (comboPoints >= tonumber(condition.search)) then
-                                            DPSGenie:debug(" less than conditon passed!")
+                                            DPSGenie:addToDebugTable("less than conditon passed!")
                                             conditionsPassed = conditionsPassed + 1
                                         end
                                     elseif condition.comparer == "more than" then
                                         if not (comboPoints <= tonumber(condition.search)) then
-                                            DPSGenie:debug(" more than conditon passed!")
+                                            DPSGenie:addToDebugTable("more than conditon passed!")
                                             conditionsPassed = conditionsPassed + 1
                                         end
                                     elseif condition.comparer == "equals" then
                                         if comboPoints == tonumber(condition.search) then
-                                            DPSGenie:debug(" equals conditon passed!")
+                                            DPSGenie:addToDebugTable("equals conditon passed!")
                                             conditionsPassed = conditionsPassed + 1
                                         end
                                     end
@@ -240,20 +261,20 @@ function DPSGenie:runRotaTable()
                         end
 
                         if value["conditions"] and conditionsPassed == #value["conditions"] then
-                            DPSGenie:debug(name .. " passed " .. conditionsPassed .. " conditions")
+                            DPSGenie:addToDebugTable("|cFF00FF00"..name .. " passed " .. conditionsPassed .. " conditions!|r")
                             DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
                             success = true
                         end
 
                         --base checks were ok but no conditions, pass
                         if not value["conditions"] then
-                            DPSGenie:debug(name .. " has no conditions and passed")
+                            DPSGenie:addToDebugTable("|cFF00FF00"..name .. " has no conditions and passed|r")
                             DPSGenie:SetFirstSuggestSpell(spell, iconModifiers);
                             success = true
                         end
 
-                        if value["conditions"] then
-                            DPSGenie:debug(name .. " passed only " .. conditionsPassed .. " conditions of " .. #value["conditions"])
+                        if value["conditions"] and false then
+                            DPSGenie:addToDebugTable("|cFFeb8f34"..name .. " passed only " .. conditionsPassed .. " conditions of " .. #value["conditions"].."|r")
                         end
 
                     end
@@ -261,10 +282,10 @@ function DPSGenie:runRotaTable()
 
                 end
             else
-                DPSGenie:debug(name .. " failed basechecks! ")
+                DPSGenie:addToDebugTable("|cFFFF0000" .. name .. " failed basechecks!|r")
             end
 
-            if success then          
+            if success and not DPSGenie:debugEnabled() then          
                 break
             end
         end
