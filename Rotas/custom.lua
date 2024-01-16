@@ -91,9 +91,18 @@ function DPSGenie:SaveCustomRota(rota, data)
     self.db.global.customRotas[rota] = data
 end
 
+
+--TODO: copy and import should check for name collisions / display name change popup
 function DPSGenie:CopyRotaToCustom(rota)
     local rotaCopy = DPSGenie:deepcopy(rota)
     local rotaName = "Copy of " .. rota.name
+    rotaCopy.name = rotaName
+    self.db.global.customRotas[rotaName] = rotaCopy
+end
+
+function DPSGenie:ImportRotaToCustom(rota)
+    local rotaCopy = DPSGenie:deepcopy(rota)
+    local rotaName = "Import " .. rota.name
     rotaCopy.name = rotaName
     self.db.global.customRotas[rotaName] = rotaCopy
 end

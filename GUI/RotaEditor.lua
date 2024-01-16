@@ -612,6 +612,45 @@ Ready to unleash your full potential? Let the magic begin!]])
 end
 
 
+function DPSGenie:DrawImportWindow(container)
+    local groupScrollContainer = AceGUI:Create("SimpleGroup")
+    groupScrollContainer:SetFullWidth(true)
+    groupScrollContainer:SetFullHeight(true)
+    groupScrollContainer:SetLayout("List")
+
+    local DPSGenieHeader = AceGUI:Create("Heading")
+    DPSGenieHeader:SetFullWidth(true)
+    DPSGenieHeader:SetText("DPSGenie Rota Import")
+    groupScrollContainer:AddChild(DPSGenieHeader)
+
+    local rotaText
+
+    local rotaInput = AceGUI:Create("MultiLineEditBox")
+    rotaInput:SetFullWidth(true)
+    rotaInput:SetLabel("Compressed Rota String")
+    rotaInput:SetNumLines(10)
+    rotaInput:DisableButton(true)
+    rotaInput:SetCallback("OnTextChanged", function(widget, event, text) 
+        rotaText = text
+    end)
+    groupScrollContainer:AddChild(rotaInput)
+
+    local importRotaButton = AceGUI:Create("Button")
+    importRotaButton:SetText("Import")
+    importRotaButton:SetWidth(75) 
+    importRotaButton:SetCallback("OnClick", function(widget) 
+        local rotaData = stringToTable(DPSGenie:decompress(rotaText))
+        --DPSGenie:Print(DPSGenie:decompress(rotaText))
+        DPSGenie:ImportRotaToCustom(rotaData)
+        rotaTree:SetTree(DPSGenie:GetRotaList())
+        rotaTree:SelectByValue("customRotations\001".."Import ".. rotaData.name)
+    end)                 
+    groupScrollContainer:AddChild(importRotaButton)
+
+
+    container:AddChild(groupScrollContainer)
+end
+
 function DPSGenie:CreateRotaBuilder()
     Rotaframe = AceGUI:Create("Window")
     Rotaframe:SetTitle("DPSGenie Rota Editor")
@@ -643,7 +682,7 @@ function DPSGenie:CreateRotaBuilder()
         if selected == "newRotation" then
             DPSGenie:DrawNewRotaWindow(container)
         elseif selected == "importRotation" then
-            print("Import rotation.")
+            DPSGenie:DrawImportWindow(container)
         elseif selected == "welcome" then
             DPSGenie:DrawWelcomeWindow(container)
         else
@@ -815,8 +854,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     groupScrollFrame:AddChild(descrEditBox)
 
     local useRotaButton = AceGUI:Create("Button")
-    useRotaButton:SetText("Use Rota")
-    useRotaButton:SetWidth(100) 
+    useRotaButton:SetText("Use")
+    useRotaButton:SetWidth(75) 
     useRotaButton:SetCallback("OnClick", function(widget) 
         DPSGenie:SetActiveRota(rotaData)
     end)                 
@@ -824,8 +863,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
 
 
     local copyRotaButton = AceGUI:Create("Button")
-    copyRotaButton:SetText("Copy Rota")
-    copyRotaButton:SetWidth(100) 
+    copyRotaButton:SetText("Copy")
+    copyRotaButton:SetWidth(75) 
     copyRotaButton:SetCallback("OnClick", function(widget) 
         DPSGenie:CopyRotaToCustom(rotaData)
         rotaTree:SetTree(DPSGenie:GetRotaList())
@@ -834,9 +873,10 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     end)                 
     groupScrollFrame:AddChild(copyRotaButton)
 
+
     local deleteRotaButton = AceGUI:Create("Button")
-    deleteRotaButton:SetText("Delete Rota")
-    deleteRotaButton:SetWidth(120) 
+    deleteRotaButton:SetText("Delete")
+    deleteRotaButton:SetWidth(75) 
     deleteRotaButton:SetCallback("OnClick", function(widget) 
         --DPSGenie:Print("would delete rota: " .. rotaData.name)
         local dialog = StaticPopup_Show("CONFIRM_DELETE_ROTA", rotaData.name)
@@ -845,6 +885,17 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
         end       
     end)                 
     groupScrollFrame:AddChild(deleteRotaButton)
+
+
+    local exportRotaButton = AceGUI:Create("Button")
+    exportRotaButton:SetText("Export")
+    exportRotaButton:SetWidth(75) 
+    exportRotaButton:SetCallback("OnClick", function(widget) 
+        local compressed = DPSGenie:compress(rotaData)
+        --DPSGenie:Print(compressed)      
+        Internal_CopyToClipboard(compressed)
+    end)                 
+    groupScrollFrame:AddChild(exportRotaButton)
 
 
     local RotaHeaderHeader = AceGUI:Create("Heading")
