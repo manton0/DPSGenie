@@ -883,8 +883,10 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
         if dialog then
             dialog.data = rotaData.name
         end       
-    end)                 
-    groupScrollFrame:AddChild(deleteRotaButton)
+    end)     
+    if not readOnly then            
+        groupScrollFrame:AddChild(deleteRotaButton)
+    end
 
 
     local exportRotaButton = AceGUI:Create("Button")
@@ -894,8 +896,10 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
         local compressed = DPSGenie:compress(rotaData)
         --DPSGenie:Print(compressed)      
         Internal_CopyToClipboard(compressed)
-    end)                 
-    groupScrollFrame:AddChild(exportRotaButton)
+    end)  
+    if not readOnly then               
+        groupScrollFrame:AddChild(exportRotaButton)
+    end
 
 
     local RotaHeaderHeader = AceGUI:Create("Heading")

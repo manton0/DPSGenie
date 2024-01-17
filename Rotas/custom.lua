@@ -66,7 +66,8 @@ end
 
 local baselayout = {
     name = "",
-    description = "", 
+    description = "",
+    timestamp = 0, 
     icon = "Interface\\Icons\\INV_Misc_QuestionMark",
     spells = {} 
 }
@@ -75,6 +76,7 @@ function DPSGenie:CreateNewRota(name, descr)
     if descr == nil or descr == "" then descr = name end
     baselayout.name = name
     baselayout.description = descr
+    baselayout.timestamp = time()
     local baseRota = DPSGenie:deepcopy(baselayout)
     self.db.global.customRotas[name] = baseRota
 end
@@ -88,6 +90,7 @@ function DPSGenie:GetCustomRota(name)
 end
 
 function DPSGenie:SaveCustomRota(rota, data)
+    data.timestamp = time()
     self.db.global.customRotas[rota] = data
 end
 
@@ -97,6 +100,7 @@ function DPSGenie:CopyRotaToCustom(rota)
     local rotaCopy = DPSGenie:deepcopy(rota)
     local rotaName = "Copy of " .. rota.name
     rotaCopy.name = rotaName
+    rotaCopy.timestamp = time()
     self.db.global.customRotas[rotaName] = rotaCopy
 end
 
@@ -104,6 +108,7 @@ function DPSGenie:ImportRotaToCustom(rota)
     local rotaCopy = DPSGenie:deepcopy(rota)
     local rotaName = "Import " .. rota.name
     rotaCopy.name = rotaName
+    rotaCopy.timestamp = time()
     self.db.global.customRotas[rotaName] = rotaCopy
 end
 

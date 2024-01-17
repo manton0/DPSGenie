@@ -40,6 +40,7 @@ function DPSGenie:showCapture()
     if not Captureframe then
         Captureframe = AceGUI:Create("Window")
         Captureframe:SetTitle("DPSGenie Aura Capture")
+        Captureframe:SetPoint("RIGHT", UIParent, "RIGHT")
         Captureframe:SetLayout("Flow")
         Captureframe:SetWidth(250)
 
