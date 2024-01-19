@@ -1,3 +1,4 @@
+local addonName, ns = ...
 DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
 DPSGenie:Print("Core loaded!")
@@ -25,12 +26,6 @@ local testTable = {
         ["Condition"] = "usable",
     }
 }
-
-DPSGenie.settings = {
-    showOutOfRange = true,
-}
-
-
 
 local acitveRota
 
@@ -120,7 +115,7 @@ function DPSGenie:runRotaTable()
                 DPSGenie:addToDebugTable("SpellHasCooldown: " .. DPSGenie:stateToColor(tostring(not SpellHasCooldown), "false"))
 
 
-                if usable and (spellInRange ~= 0 or DPSGenie.settings.showOutOfRange) and (((start == 0 and duration == 0) or gcdremain < 1.5) or (maxCharges > 0 and currentCharges > 0)) then
+                if usable and (spellInRange ~= 0 or DPSGenie:LoadSettingFromProfile("showOutOfRange")) and (((start == 0 and duration == 0) or gcdremain < 1.5) or (maxCharges > 0 and currentCharges > 0)) then
 
                     if (UnitCanAttack("player", unit) and IsHarmfulSpell(name)) or IsHelpfulSpell(name) then
 

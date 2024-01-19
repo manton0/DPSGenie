@@ -1,3 +1,4 @@
+local addonName, ns = ...
 DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
 DPSGenie:Print("SpellButton loaded!")
@@ -152,6 +153,11 @@ function DPSGenie:SetFirstSuggestSpell(spellId, iconModifiers)
         FirstSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") 
         FirstSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99)
         DPSGenieButtonHolderFrame1.text:SetText("?")
+        if not DPSGenie:LoadSettingFromProfile("showEmpty") then
+            DPSGenieButtonHolderFrame1:Hide()
+        else
+            DPSGenieButtonHolderFrame1:Show()
+        end
     else
         local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellId)
         FirstSpellFrame:SetTexture(icon)
@@ -162,6 +168,7 @@ function DPSGenie:SetFirstSuggestSpell(spellId, iconModifiers)
         else
             FirstSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99)
         end
+        DPSGenieButtonHolderFrame1:Show()
 
         if actionSort[name] then
             local keybind = shortCut[actionSort[name]]
@@ -189,6 +196,11 @@ function DPSGenie:SetSecondSuggestSpell(spellId, iconModifiers)
     if not spellId then
         SecondSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
         SecondSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99) 
+        if not DPSGenie:LoadSettingFromProfile("showEmpty") then
+            DPSGenieButtonHolderFrame2:Hide()
+        else
+            DPSGenieButtonHolderFrame2:Show()
+        end
     else
         local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellId)
         SecondSpellFrame:SetTexture(icon)
@@ -198,6 +210,7 @@ function DPSGenie:SetSecondSuggestSpell(spellId, iconModifiers)
         else
             SecondSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99)
         end
+        DPSGenieButtonHolderFrame2:Show()
     end
 end
 
@@ -240,6 +253,7 @@ DPSGenieButtonHolderFrame1.text:SetText("?")
 FirstSpellFrame = DPSGenieButtonHolderFrame1:CreateTexture(nil, "ARTWORK")
 FirstSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
 FirstSpellFrame:SetAllPoints(true)
+DPSGenieButtonHolderFrame1:Hide()
 
 
 -- Erstelle den zweiten Frame mit Textur
@@ -255,5 +269,4 @@ DPSGenieButtonHolderFrame2.text:SetText("?")
 SecondSpellFrame = DPSGenieButtonHolderFrame2:CreateTexture(nil, "ARTWORK")
 SecondSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
 SecondSpellFrame:SetAllPoints(true)
-
-
+DPSGenieButtonHolderFrame2:Hide()

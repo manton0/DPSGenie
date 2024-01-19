@@ -1,3 +1,4 @@
+local addonName, ns = ...
 DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
 DPSGenie:Print("Custom Rotas loaded!")
@@ -115,3 +116,6 @@ end
 function DPSGenie:DeleteCustomRota(rotaName)
     self.db.global.customRotas[rotaName] = nil
 end
+
+--we also do settings here for now...
+
