@@ -840,51 +840,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
  
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
     -- titleEditBox
- 
-    local titleEditBox = AceGUI:Create("EditBox")
-    titleEditBox:SetFullWidth(true)
-    titleEditBox:SetLabel("Title")
-    titleEditBox:SetText(rotaData.name)
-    titleEditBox:SetDisabled(readOnly)
 
-    titleEditBox:SetCallback("OnTextChanged", function(self) 
-        local newname = self:GetText():match( "^%s*(.-)%s*$" )
-        if DPSGenie:GetCustomRota(newname) and newname ~= rotaData.name then 
-            self.editbox:SetTextColor(1,0,0)
-        else
-            self.editbox:SetTextColor(1,1,1)
-        end
-    end)
-
-    groupScrollFrame:AddChild(titleEditBox)
- 
-    --[[
-    titleEditBox:SetCallback("OnEnterPressed", function(self)
-        local success, err = DPSGenie:UpdateRotaTitle(group.rotaTitle, self:GetText())
- 
-        self:ClearFocus()
- 
-        if err and err == "exists" then
-            -- If err is because objective exists, restore title, focus and highlight for user to change
-            -- The other err would be because the title hasn't changed
-            self:SetText(group.rotaTitle)
-            self:SetFocus()
-            self:HighlightText()
-        elseif success then
-            -- Update the objectiveTree to repopulate rotaTitles
-            group:SetTree(DPSGenie:GetRotaList())
-            -- Update the container's title reference
-            group.rotaTitle = self:GetText()
-        end
-    end)
-    ]]--
-
-    local descrEditBox = AceGUI:Create("EditBox")
-    descrEditBox:SetFullWidth(true)
-    descrEditBox:SetLabel("Description")
-    descrEditBox:SetText(rotaData.description)
-    descrEditBox:SetDisabled(readOnly)
-    groupScrollFrame:AddChild(descrEditBox)
 
     local useRotaButton = AceGUI:Create("Button")
     useRotaButton:SetText("Use")
@@ -935,6 +891,75 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     if not readOnly then               
         groupScrollFrame:AddChild(exportRotaButton)
     end
+
+    local rotainfoheader = AceGUI:Create("Heading")
+    rotainfoheader:SetFullWidth(true)
+    rotainfoheader:SetText("Rotation Infos")
+    groupScrollFrame:AddChild(rotainfoheader)
+
+ 
+    local titleEditBox = AceGUI:Create("EditBox")
+    titleEditBox:SetWidth(290)
+    titleEditBox:SetLabel("Title")
+    titleEditBox:SetText(rotaData.name)
+    titleEditBox:SetDisabled(readOnly)
+    titleEditBox:DisableButton(true)
+
+    local saveNewName = ""
+    local titleSaveButton = AceGUI:Create("Button")
+    titleSaveButton:SetText("Save")
+    titleSaveButton:SetWidth(60) 
+    titleSaveButton:SetDisabled(true)
+    titleSaveButton:SetCallback("OnClick", function(widget) 
+        if saveNewName ~= "" then
+            DPSGenie:RenameCustomRota(rotaData.name, saveNewName)
+            rotaTree:SetTree(DPSGenie:GetRotaList())
+            rotaTree:SelectByValue("customRotations\001"..saveNewName)
+        end
+    end)                 
+
+    titleEditBox:SetCallback("OnTextChanged", function(self) 
+        local newname = self:GetText():match( "^%s*(.-)%s*$" )
+        if DPSGenie:GetCustomRota(newname) and newname ~= rotaData.name and string.len(newname) < 1 then 
+            self.editbox:SetTextColor(1,0,0)
+            titleSaveButton:SetDisabled(true)
+        else
+            self.editbox:SetTextColor(1,1,1)
+            titleSaveButton:SetDisabled(false)
+            saveNewName = newname
+        end
+    end)
+
+    groupScrollFrame:AddChild(titleEditBox)
+    groupScrollFrame:AddChild(titleSaveButton)
+
+    local descrEditBox = AceGUI:Create("MultiLineEditBox")
+    descrEditBox:SetWidth(290)
+    descrEditBox:SetNumLines(3)
+    descrEditBox:SetLabel("Description")
+    descrEditBox:SetText(rotaData.description)
+    descrEditBox:SetDisabled(readOnly)
+    descrEditBox:DisableButton(true)
+
+    local saveNewDescr = ""
+    local descrSaveButton = AceGUI:Create("Button")
+    descrSaveButton:SetText("Save")
+    descrSaveButton:SetWidth(60) 
+    descrSaveButton:SetDisabled(true)
+    descrSaveButton:SetCallback("OnClick", function(widget) 
+        DPSGenie:UpdateRotaField(rotaData.name, "description", saveNewDescr)
+    end)     
+
+    descrEditBox:SetCallback("OnTextChanged", function(self) 
+        local newdescr = self:GetText():match( "^%s*(.-)%s*$" )
+        if newdescr ~= rotaData.description then
+            descrSaveButton:SetDisabled(false)
+            saveNewDescr = newdescr
+        end
+    end)
+
+    groupScrollFrame:AddChild(descrEditBox)
+    groupScrollFrame:AddChild(descrSaveButton)
 
 
     local RotaHeaderHeader = AceGUI:Create("Heading")

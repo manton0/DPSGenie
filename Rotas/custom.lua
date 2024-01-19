@@ -125,5 +125,14 @@ function DPSGenie:DeleteCustomRota(rotaName)
     self.db.global.customRotas[rotaName] = nil
 end
 
---we also do settings here for now...
+function DPSGenie:RenameCustomRota(oldName, newName)
+    local rotaCopy = DPSGenie:deepcopy(DPSGenie:GetCustomRota(oldName))
+    rotaCopy.name = newName
+    rotaCopy.timestamp = time()
+    self.db.global.customRotas[newName] = rotaCopy
+    DPSGenie:DeleteCustomRota(oldName)
+end
 
+function DPSGenie:UpdateRotaField(rota, field, value)
+    self.db.global.customRotas[rota][field] = value
+end
