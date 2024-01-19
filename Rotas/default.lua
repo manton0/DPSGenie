@@ -1,6 +1,6 @@
 DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
-DPSGenie:Print("Default Rotas loaded!")
+--DPSGenie:Print("Default Rotas loaded!")
 
 local defaultRotas = {
     ["Lava Sweep Build"] = {

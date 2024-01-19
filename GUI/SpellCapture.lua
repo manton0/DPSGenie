@@ -1,6 +1,6 @@
 DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
-DPSGenie:Print("AuraCapture loaded!")
+--DPSGenie:Print("AuraCapture loaded!")
 
 local AceGUI = LibStub("AceGUI-3.0")
 local Captureframe

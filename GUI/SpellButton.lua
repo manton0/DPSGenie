@@ -1,7 +1,7 @@
 local addonName, ns = ...
 DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
-DPSGenie:Print("SpellButton loaded!")
+--DPSGenie:Print("SpellButton loaded!")
 
 local AceGUI = LibStub("AceGUI-3.0")
 

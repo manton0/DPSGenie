@@ -1,6 +1,6 @@
 DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
-DPSGenie:Print("Utils loaded!")
+--DPSGenie:Print("Utils loaded!")
 
 local showDebug = false
 local debugWindow, debugText

@@ -41,28 +41,28 @@ local options = {
             end
         },
         showOutOfRange = {
-            name = "showOutOfRange",
+            name = "show Out Of Range",
             desc = "Shows Spells if out of range?",
             type = "toggle",
             set = function(info, val) DPSGenie:SaveSettingToProfile("showOutOfRange", val) end,
             get = function(info) return DPSGenie:LoadSettingFromProfile("showOutOfRange") end
         },
         showEmpty = {
-            name = "showEmpty",
+            name = "show Empty Button",
             desc = "Shows Spellbutton if has no spell?",
             type = "toggle",
             set = function(info, val) DPSGenie:SaveSettingToProfile("showEmpty", val) end,
             get = function(info) return DPSGenie:LoadSettingFromProfile("showEmpty") end
         },
         showSpellFlash = {
-            name = "showSpellFlash",
+            name = "show SpellFlash",
             desc = "Shows flash on actionbar?",
             type = "toggle",
             set = function(info, val) DPSGenie:SaveSettingToProfile("showSpellFlash", val) end,
             get = function(info) return DPSGenie:LoadSettingFromProfile("showSpellFlash") end
         },
         showKeybind = {
-            name = "showKeybind",
+            name = "show Keybind",
             desc = "Shows keybind on Spellbutton?",
             type = "toggle",
             set = function(info, val) DPSGenie:SaveSettingToProfile("showKeybind", val) end,

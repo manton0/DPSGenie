@@ -1,7 +1,7 @@
 local addonName, ns = ...
 DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
-DPSGenie:Print("Custom Rotas loaded!")
+--DPSGenie:Print("Custom Rotas loaded!")
 
 local defaultSettings = {
     global = { customRotas = {} }
