@@ -1,3 +1,4 @@
+local addonName, ns = ...
 DPSGenie = LibStub("AceAddon-3.0"):GetAddon("DPSGenie")
 
 DPSGenie:Print("RotaEditor loaded!")
@@ -663,9 +664,9 @@ function DPSGenie:DrawImportWindow(container)
     importRotaButton:SetCallback("OnClick", function(widget) 
         local rotaData = stringToTable(DPSGenie:decompress(rotaText))
         --DPSGenie:Print(DPSGenie:decompress(rotaText))
-        DPSGenie:ImportRotaToCustom(rotaData)
+        local importrotaname = DPSGenie:ImportRotaToCustom(rotaData)
         rotaTree:SetTree(DPSGenie:GetRotaList())
-        rotaTree:SelectByValue("customRotations\001".."Import ".. rotaData.name)
+        rotaTree:SelectByValue("customRotations\001"..importrotaname)
     end)                 
     groupScrollContainer:AddChild(importRotaButton)
 
@@ -845,6 +846,16 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     titleEditBox:SetLabel("Title")
     titleEditBox:SetText(rotaData.name)
     titleEditBox:SetDisabled(readOnly)
+
+    titleEditBox:SetCallback("OnTextChanged", function(self) 
+        local newname = self:GetText():match( "^%s*(.-)%s*$" )
+        if DPSGenie:GetCustomRota(newname) and newname ~= rotaData.name then 
+            self.editbox:SetTextColor(1,0,0)
+        else
+            self.editbox:SetTextColor(1,1,1)
+        end
+    end)
+
     groupScrollFrame:AddChild(titleEditBox)
  
     --[[
@@ -888,9 +899,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     copyRotaButton:SetText("Copy")
     copyRotaButton:SetWidth(75) 
     copyRotaButton:SetCallback("OnClick", function(widget) 
-        DPSGenie:CopyRotaToCustom(rotaData)
+        local copyrotaname = DPSGenie:CopyRotaToCustom(rotaData)
         rotaTree:SetTree(DPSGenie:GetRotaList())
-        rotaTree:SelectByValue("customRotations\001".."Copy of ".. rotaData.name)
+        rotaTree:SelectByValue("customRotations\001".. copyrotaname)
         --DPSGenie:DrawRotaGroup(rotaTree, "Copy of ".. rotaData.name, "custom")
     end)                 
     groupScrollFrame:AddChild(copyRotaButton)

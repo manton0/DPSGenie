@@ -100,17 +100,25 @@ end
 function DPSGenie:CopyRotaToCustom(rota)
     local rotaCopy = DPSGenie:deepcopy(rota)
     local rotaName = "Copy of " .. rota.name
+    if self.db.global.customRotas[rotaName] ~= nil then
+        rotaName = string.sub(time(), -3) .. " " .. rotaName
+    end
     rotaCopy.name = rotaName
     rotaCopy.timestamp = time()
     self.db.global.customRotas[rotaName] = rotaCopy
+    return rotaName
 end
 
 function DPSGenie:ImportRotaToCustom(rota)
     local rotaCopy = DPSGenie:deepcopy(rota)
     local rotaName = "Import " .. rota.name
+    if self.db.global.customRotas[rotaName] ~= nil then
+        rotaName = string.sub(time(), -3) .. " " .. rotaName
+    end
     rotaCopy.name = rotaName
     rotaCopy.timestamp = time()
     self.db.global.customRotas[rotaName] = rotaCopy
+    return rotaName
 end
 
 function DPSGenie:DeleteCustomRota(rotaName)
