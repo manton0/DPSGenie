@@ -13,8 +13,7 @@ local options = {
             type = "execute",
             name = "Show Addon Config",
             func = function()
-                --InterfaceOptionsFrame_OpenToCategory(optionsFrame)
-                DPSGenie:showRotaBuilder()
+                InterfaceOptionsFrame_OpenToCategory(optionsFrame)
             end
         },
         capture = {
@@ -55,6 +54,20 @@ local options = {
             set = function(info, val) DPSGenie:SaveSettingToProfile("showEmpty", val) end,
             get = function(info) return DPSGenie:LoadSettingFromProfile("showEmpty") end
         },
+        showSpellFlash = {
+            name = "showSpellFlash",
+            desc = "Shows flash on actionbar?",
+            type = "toggle",
+            set = function(info, val) DPSGenie:SaveSettingToProfile("showSpellFlash", val) end,
+            get = function(info) return DPSGenie:LoadSettingFromProfile("showSpellFlash") end
+        },
+        showKeybind = {
+            name = "showKeybind",
+            desc = "Shows keybind on Spellbutton?",
+            type = "toggle",
+            set = function(info, val) DPSGenie:SaveSettingToProfile("showKeybind", val) end,
+            get = function(info) return DPSGenie:LoadSettingFromProfile("showKeybind") end
+        },
     },
 }
 
@@ -67,6 +80,9 @@ local defaultSettings = {
     char = {
         showOutOfRange = true,
         showEmpty = false,
+        showSpellFlash = true,
+        showKeybind = true,
+        spellFlashType = "default",
     }
 }
 
@@ -82,7 +98,11 @@ end
 
 function DPSGenie:LoadSettingFromProfile(setting)
     --print("getting " .. setting .. " -> " .. (tostring(self.db.char[setting]) or "flase"))
-    return self.db.char[setting] or false;
+    if self.db.char[setting] ~= nil then
+        return self.db.char[setting];
+    else
+        return defaultSettings.char[setting]
+    end
 end
 
 function DPSGenie:OnEnable()

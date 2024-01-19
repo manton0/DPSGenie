@@ -8,6 +8,28 @@ local defaultRotas
 local customRotas
 local conditionPickerFrame, spellPickerFrame
 
+DPSGenieExportString = ""
+
+StaticPopupDialogs["COPY_ROTA_STRING"] = {
+    text = "You can now copy the rota string with CRTL+C",
+    button1 = "Done",
+    OnShow = function (self)
+        self.editBox:SetText(_G["DPSGenieExportString"])
+        self.editBox:HighlightText()
+        self.editBox:SetFocus()
+    end,
+    EditBoxOnTextChanged = function (self)
+        local parent = self:GetParent();
+        parent.editBox:SetText(_G["DPSGenieExportString"])
+        parent.editBox:HighlightText()
+        parent.editBox:SetFocus()
+    end,
+    hasEditBox = true,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
 
 StaticPopupDialogs["CONFIRM_DELETE_SPELL"] = {
     text = "Do you want to delete the Spell %s?",
@@ -895,7 +917,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     exportRotaButton:SetCallback("OnClick", function(widget) 
         local compressed = DPSGenie:compress(rotaData)
         --DPSGenie:Print(compressed)      
-        Internal_CopyToClipboard(compressed)
+        --Internal_CopyToClipboard(compressed)
+        DPSGenieExportString = compressed
+        local dialog = StaticPopup_Show("COPY_ROTA_STRING")
     end)  
     if not readOnly then               
         groupScrollFrame:AddChild(exportRotaButton)

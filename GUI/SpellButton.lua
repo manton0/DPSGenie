@@ -174,13 +174,15 @@ function DPSGenie:SetFirstSuggestSpell(spellId, iconModifiers)
             local keybind = shortCut[actionSort[name]]
             if actionSort[name] <= 12 then
 
-                --TODO: get addon on first run, no need to check on every pulse
-                if _G["BT4Button1"] and _G["BT4Button1"]:IsVisible() then
-                    DPSGenie:ShowPulseFrame(_G["BT4Button"..tostring(actionSort[name])])
-                elseif _G["ElvUI_Bar1Button1"] and _G["ElvUI_Bar1Button1"]:IsVisible() then
-                    DPSGenie:ShowPulseFrame(_G["ElvUI_Bar1Button"..tostring(actionSort[name])])
-                else
-                    DPSGenie:ShowPulseFrame(_G["ActionButton"..tostring(actionSort[name])])
+                if DPSGenie:LoadSettingFromProfile("showSpellFlash") then
+                    --TODO: get addon on first run, no need to check on every pulse
+                    if _G["BT4Button1"] and _G["BT4Button1"]:IsVisible() then
+                        DPSGenie:ShowPulseFrame(_G["BT4Button"..tostring(actionSort[name])])
+                    elseif _G["ElvUI_Bar1Button1"] and _G["ElvUI_Bar1Button1"]:IsVisible() then
+                        DPSGenie:ShowPulseFrame(_G["ElvUI_Bar1Button"..tostring(actionSort[name])])
+                    else
+                        DPSGenie:ShowPulseFrame(_G["ActionButton"..tostring(actionSort[name])])
+                    end
                 end
             end
             DPSGenieButtonHolderFrame1.text:SetText(tostring(keybind))
