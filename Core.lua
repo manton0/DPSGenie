@@ -9,24 +9,6 @@ function DPSGenie:addToDebugTable(text)
     table.insert(debugTable, text)
 end
 
-local playerStats = {}
-local targetStats = {}
-
-local testTable = {
-    [1] = {
-        ["Spell"] = 53408,
-        ["Condition"] = "usable",
-    },
-    [2] = {
-        ["Spell"] = 81384,
-        ["Condition"] = "usable",
-    },
-    [3] = {
-        ["Spell"] = 35395,
-        ["Condition"] = "usable",
-    }
-}
-
 local acitveRota
 
 function DPSGenie:SetActiveRota(rotaTable)
@@ -117,6 +99,7 @@ function DPSGenie:runRotaTable()
 
                 if usable and (spellInRange ~= 0 or DPSGenie:LoadSettingFromProfile("showOutOfRange")) and (((start == 0 and duration == 0) or gcdremain < 1.5) or (maxCharges > 0 and currentCharges > 0)) then
 
+                    --may recheck this for buffs in combat?
                     if (UnitCanAttack("player", unit) and IsHarmfulSpell(name)) or IsHelpfulSpell(name) then
 
                         local conditionsPassed = 0
@@ -178,6 +161,14 @@ function DPSGenie:runRotaTable()
                                                 conditionsPassed = conditionsPassed + 1
                                             end
                                         --buffs contains end
+                                        --buffs not contains start
+                                        elseif condition.comparer == "not contains" then
+                                            DPSGenie:addToDebugTable("-- c" .. cindex .. ": not contains: " .. auraName .. " count: " .. count)
+                                            if count == nil or count == 0 then
+                                                DPSGenie:addToDebugTable("not contains conditon passed!")
+                                                conditionsPassed = conditionsPassed + 1
+                                            end
+                                        --buffs not contains end
                                         end
                                     else
                                         DPSGenie:addToDebugTable("-- c" .. cindex ..": buff count was nil")
@@ -296,7 +287,9 @@ end
 
 
 function DPSGenie:OnEnable()
-    self.testTimer = self:ScheduleRepeatingTimer("runRotaTable", .250)
+    -- add timer for each "subrota"
+    self.RotaSchedule = self:ScheduleRepeatingTimer("runRotaTable", .250)
+
     local rota = DPSGenie:LoadSettingFromProfile("activeRota")
     if rota then
         DPSGenie:SetActiveRota(rota)

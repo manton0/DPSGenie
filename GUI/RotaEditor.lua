@@ -81,6 +81,7 @@ local conditionTree = {
     ["Player"] = {
         ["Buffs"] = {
             "contains",
+            "not contains",
             "more than",
             "less than",
             "equals"
@@ -114,6 +115,7 @@ local conditionTree = {
     ["Target"] = {
         ["Buffs"] = {
             "contains",
+            "not contains",
             "more than",
             "less than",
             "equals"
@@ -369,6 +371,8 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
 
 end
 
+--TODO: add option to show all spells available for players, not just learned
+--TODO: add option to ignore rank so spellsuggest will always show hightest rank known
 function DPSGenie:showSpellPicker(rotaTitle)
     spellPickerFrame = AceGUI:Create("Window")
     spellPickerFrame:SetPoint("TOPLEFT", Rotaframe.frame, "TOPRIGHT")
@@ -799,6 +803,8 @@ end
 
 local customButtons = {}
 
+
+--TODO: make editbox for name and description a new window, as well for other options
 function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
 
     --remove custom buttons as they were not added as childs
@@ -967,205 +973,240 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
     RotaHeaderHeader:SetText("Rotation Setup")
     groupScrollFrame:AddChild(RotaHeaderHeader)
 
-    local labelRotaHeader = AceGUI:Create("SimpleGroup")
-    labelRotaHeader:SetFullWidth(true)
-    --labelRotaHeader:SetTitle("Spell Rotation")
-    groupScrollFrame:AddChild(labelRotaHeader)
 
-    if rotaData.spells then
-        for ks, vs in ipairs(rotaData.spells) do
+    local tabList = {{text="+", value="addtab"}}
 
-            local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vs.spellId)
+    --print("subs: " .. #rotaData.spells)
+    --Internal_CopyToClipboard(DPSGenie:dumpTable(rotaData))
+    for ksub, vsub in ipairs(rotaData.spells) do
+        --print("sub: " .. ksub)
+        local newTab = {}
+        newTab.text = ksub
+        newTab.value = ksub
+        table.insert(tabList, #tabList, newTab)
+    end
 
-            local rotaPartHolder = AceGUI:Create("InlineGroup")
-            rotaPartHolder:SetTitle(ks .. ". " .. name)
-            rotaPartHolder:SetFullWidth(true)
-            rotaPartHolder:SetLayout("List")
+    local tab =  AceGUI:Create("TabGroup")
+    tab:SetLayout("Flow")
+    tab:SetFullWidth(true)
+    tab:SetTabs(tabList)
+    tab:SetCallback("OnGroupSelected", function(self, event, group)
+        if group == "addtab" then
+            local newTab = {}
+            newTab.text = #tabList
+            newTab.value = #tabList
+            table.insert(tabList, #tabList, newTab)
+            self:SetTabs(tabList)
+            self:SelectTab(#tabList) --why u no work???
+            groupScrollFrame:DoLayout()
+        else
+            self:ReleaseChildren()
 
-            local currentRotaPartLabel = AceGUI:Create("Label")
-            currentRotaPartLabel:SetFullWidth(true)
-            currentRotaPartLabel:SetText(name)
-            currentRotaPartLabel:SetImage(icon)
-            currentRotaPartLabel:SetImageSize(32, 32)
-            rotaPartHolder:AddChild(currentRotaPartLabel)
 
-            if vs.conditions then
-                for kc, vc in ipairs(vs.conditions) do
-                    local conditionPartHolder = AceGUI:Create("InlineGroup")
-                    conditionPartHolder:SetTitle(kc .. ". Condition")
-                    conditionPartHolder:SetFullWidth(true)
-                    
-                    local currentConditionPartUnit = AceGUI:Create("Label")
-                    currentConditionPartUnit:SetFullWidth(true)
-                    currentConditionPartUnit:SetText("\124cFF00FF00Unit:\124r " .. vc.unit)
-                    conditionPartHolder:AddChild(currentConditionPartUnit)
+            for btnCnt = 1, #customButtons do
+                customButtons[btnCnt].frame:Hide();
+            end
 
-                    local currentConditionPartSubject = AceGUI:Create("Label")
-                    currentConditionPartSubject:SetFullWidth(true)
-                    currentConditionPartSubject:SetText("\124cFF00FF00Subject:\124r " .. vc.subject)
-                    conditionPartHolder:AddChild(currentConditionPartSubject)
+             --containing frame for all the spells
+            local labelRotaHeader = AceGUI:Create("SimpleGroup")
+            labelRotaHeader:SetFullWidth(true)
+            --labelRotaHeader:SetTitle("Spell Rotation")
+            self:AddChild(labelRotaHeader)
 
-                    local currentConditionPartComparer = AceGUI:Create("Label")
-                    currentConditionPartComparer:SetFullWidth(true)
-                    currentConditionPartComparer:SetText("\124cFF00FF00Comparer:\124r " .. vc.comparer)
-                    conditionPartHolder:AddChild(currentConditionPartComparer)
+            if rotaData.spells[group] then
+                for ks, vs in ipairs(rotaData.spells[group]) do
 
-                    if vc.compare_value then
-                        local currentConditionPartCompareValue = AceGUI:Create("Label")
-                        currentConditionPartCompareValue:SetFullWidth(true)
-                        currentConditionPartCompareValue:SetText("\124cFF00FF00Compare Value:\124r " .. vc.compare_value)
-                        conditionPartHolder:AddChild(currentConditionPartCompareValue)
+                    local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vs.spellId)
+
+                    local rotaPartHolder = AceGUI:Create("InlineGroup")
+                    rotaPartHolder:SetTitle(ks .. ". " .. name)
+                    rotaPartHolder:SetFullWidth(true)
+                    rotaPartHolder:SetLayout("List")
+
+                    local currentRotaPartLabel = AceGUI:Create("Label")
+                    currentRotaPartLabel:SetFullWidth(true)
+                    currentRotaPartLabel:SetText(name)
+                    currentRotaPartLabel:SetImage(icon)
+                    currentRotaPartLabel:SetImageSize(32, 32)
+                    rotaPartHolder:AddChild(currentRotaPartLabel)
+
+                    if vs.conditions then
+                        for kc, vc in ipairs(vs.conditions) do
+                            local conditionPartHolder = AceGUI:Create("InlineGroup")
+                            conditionPartHolder:SetTitle(kc .. ". Condition")
+                            conditionPartHolder:SetFullWidth(true)
+                            
+                            local currentConditionPartUnit = AceGUI:Create("Label")
+                            currentConditionPartUnit:SetFullWidth(true)
+                            currentConditionPartUnit:SetText("\124cFF00FF00Unit:\124r " .. vc.unit)
+                            conditionPartHolder:AddChild(currentConditionPartUnit)
+
+                            local currentConditionPartSubject = AceGUI:Create("Label")
+                            currentConditionPartSubject:SetFullWidth(true)
+                            currentConditionPartSubject:SetText("\124cFF00FF00Subject:\124r " .. vc.subject)
+                            conditionPartHolder:AddChild(currentConditionPartSubject)
+
+                            local currentConditionPartComparer = AceGUI:Create("Label")
+                            currentConditionPartComparer:SetFullWidth(true)
+                            currentConditionPartComparer:SetText("\124cFF00FF00Comparer:\124r " .. vc.comparer)
+                            conditionPartHolder:AddChild(currentConditionPartComparer)
+
+                            if vc.compare_value then
+                                local currentConditionPartCompareValue = AceGUI:Create("Label")
+                                currentConditionPartCompareValue:SetFullWidth(true)
+                                currentConditionPartCompareValue:SetText("\124cFF00FF00Compare Value:\124r " .. vc.compare_value)
+                                conditionPartHolder:AddChild(currentConditionPartCompareValue)
+                            end
+
+                            local currentConditionPartSearch = AceGUI:Create("Label")
+                            currentConditionPartSearch:SetFullWidth(true)
+                            if vc.subject == "Buffs" then
+                                local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vc.search)
+                                currentConditionPartSearch:SetText("\124cFF00FF00Search:\124r " .. name .. " (ID: " .. vc.search .. ")")
+                            else
+                                currentConditionPartSearch:SetText("\124cFF00FF00Search:\124r " .. vc.search)
+                            end
+                            conditionPartHolder:AddChild(currentConditionPartSearch)
+
+
+                            local deleteConditionButton = AceGUI:Create("Button")
+                            deleteConditionButton:SetText("Delete Spell")
+                            deleteConditionButton:SetWidth(20)  
+                            deleteConditionButton:SetHeight(20)          
+                            deleteConditionButton:SetCallback("OnClick", function(widget) 
+                                local dialog = StaticPopup_Show("CONFIRM_DELETE_CONDITION")
+                                if dialog then
+                                    dialog.data = {s = ks, c = kc, g = group}
+                                    dialog.data2 = rotaTitle
+                                end
+                            end)   
+                            table.insert(customButtons, deleteConditionButton)
+
+                            deleteConditionButton.frame:ClearAllPoints()
+                            deleteConditionButton.frame:SetParent(conditionPartHolder.frame)
+                            deleteConditionButton.frame:SetPoint("TOPRIGHT", conditionPartHolder.frame, "TOPRIGHT", -10, -25)
+                            deleteConditionButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\close.tga")
+                            if not readOnly then
+                                deleteConditionButton.frame:Show()
+                            end
+
+                            --[[
+                            --TODO: reenable edit button
+                            local editButton = AceGUI:Create("Button")
+                            editButton:SetText("Edit")
+                            editButton:SetWidth(75)    
+                            if not readOnly then              
+                                conditionPartHolder:AddChild(editButton)
+                            end
+                            ]]
+                            rotaPartHolder:AddChild(conditionPartHolder)
+                        end
                     end
 
-                    local currentConditionPartSearch = AceGUI:Create("Label")
-                    currentConditionPartSearch:SetFullWidth(true)
-                    if vc.subject == "Buffs" then
-                        local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vc.search)
-                        currentConditionPartSearch:SetText("\124cFF00FF00Search:\124r " .. name .. " (ID: " .. vc.search .. ")")
-                    else
-                        currentConditionPartSearch:SetText("\124cFF00FF00Search:\124r " .. vc.search)
+                    local addConditionButton = AceGUI:Create("Button")
+                    addConditionButton:SetText("Add Condition")
+                    addConditionButton:SetWidth(150)      
+                    addConditionButton:SetCallback("OnClick", function(widget) 
+                        if spellPickerFrame then
+                            spellPickerFrame:Fire("OnClose")
+                        end
+                        DPSGenie:showConditionPicker(rotaTitle, ks, group)
+                    end)        
+                    if not readOnly then    
+                        rotaPartHolder:AddChild(addConditionButton)
                     end
-                    conditionPartHolder:AddChild(currentConditionPartSearch)
 
-
-                    local deleteConditionButton = AceGUI:Create("Button")
-                    deleteConditionButton:SetText("Delete Spell")
-                    deleteConditionButton:SetWidth(20)  
-                    deleteConditionButton:SetHeight(20)          
-                    deleteConditionButton:SetCallback("OnClick", function(widget) 
-                        local dialog = StaticPopup_Show("CONFIRM_DELETE_CONDITION")
+                    local deleteSpellButton = AceGUI:Create("Button")
+                    deleteSpellButton:SetText("Delete Spell")
+                    deleteSpellButton:SetWidth(20)  
+                    deleteSpellButton:SetHeight(20)          
+                    deleteSpellButton:SetCallback("OnClick", function(widget) 
+                        local dialog = StaticPopup_Show("CONFIRM_DELETE_SPELL", name)
                         if dialog then
-                            dialog.data = {s = ks, c = kc}
+                            dialog.data = {s = ks, g = group}
                             dialog.data2 = rotaTitle
                         end
                     end)   
-                    table.insert(customButtons, deleteConditionButton)
-
-                    deleteConditionButton.frame:ClearAllPoints()
-                    deleteConditionButton.frame:SetParent(conditionPartHolder.frame)
-                    deleteConditionButton.frame:SetPoint("TOPRIGHT", conditionPartHolder.frame, "TOPRIGHT", -10, -25)
-                    deleteConditionButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\close.tga")
+                    table.insert(customButtons, deleteSpellButton)   
+                    --rotaPartHolder:AddChild(deleteSpellButton)
+                    
+                    deleteSpellButton.frame:ClearAllPoints()
+                    deleteSpellButton.frame:SetParent(rotaPartHolder.frame)
+                    deleteSpellButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -10, -25)
+                    deleteSpellButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\close.tga")
                     if not readOnly then
-                        deleteConditionButton.frame:Show()
+                        deleteSpellButton.frame:Show()
                     end
 
-                    --[[
-                    --TODO: reenable edit button
-                    local editButton = AceGUI:Create("Button")
-                    editButton:SetText("Edit")
-                    editButton:SetWidth(75)    
-                    if not readOnly then              
-                        conditionPartHolder:AddChild(editButton)
+                    local moveSpellUpButton = AceGUI:Create("Button")
+                    moveSpellUpButton:SetWidth(20)   
+                    moveSpellUpButton:SetHeight(20)           
+                    moveSpellUpButton:SetCallback("OnClick", function(widget) 
+                        --print("moveup " .. rotaTitle .. " io: " .. ks .. " in: " .. ks-1)
+                        DPSGenie:swapSpells(rotaTitle, ks, ks-1, group)
+                    end) 
+                    
+                    moveSpellUpButton.frame:ClearAllPoints()
+                    moveSpellUpButton.frame:SetParent(rotaPartHolder.frame)
+                    moveSpellUpButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -35, -25)
+                    moveSpellUpButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\up.tga")
+                    if ks ~= 1 then
+                        if not readOnly then
+                            moveSpellUpButton.frame:Show()
+                        end
                     end
-                    ]]
-                    rotaPartHolder:AddChild(conditionPartHolder)
+                    table.insert(customButtons, moveSpellUpButton)
+                    --rotaPartHolder:AddChild(moveSpellUpButton)
+
+                    local moveSpellDownButton = AceGUI:Create("Button")
+                    moveSpellDownButton:SetWidth(20)   
+                    moveSpellDownButton:SetHeight(20)           
+                    moveSpellDownButton:SetCallback("OnClick", function(widget) 
+                        --print("movedown " .. rotaTitle .. " io: " .. ks .. " in: " .. ks+1)
+                        DPSGenie:swapSpells(rotaTitle, ks, ks+1, group)
+                    end)   
+                    moveSpellDownButton.frame:ClearAllPoints()
+                    moveSpellDownButton.frame:SetParent(rotaPartHolder.frame)
+                    local xpos = -60
+                    if ks == 1 then
+                        xpos = -35
+                    end
+                    moveSpellDownButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", xpos, -25)
+                    moveSpellDownButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\down.tga")
+                    if ks ~= #rotaData.spells[group] then
+                        if not readOnly then
+                            moveSpellDownButton.frame:Show()
+                        end
+                    end
+                    table.insert(customButtons, moveSpellDownButton)
+                    --rotaPartHolder:AddChild(moveSpellDownButton)
+
+
+                    --should be called last
+                    labelRotaHeader:AddChild(rotaPartHolder)
                 end
             end
 
-            local addConditionButton = AceGUI:Create("Button")
-            addConditionButton:SetText("Add Condition")
-            addConditionButton:SetWidth(150)      
-            addConditionButton:SetCallback("OnClick", function(widget) 
-                if spellPickerFrame then
-                    spellPickerFrame:Fire("OnClose")
+            local addSpellButton = AceGUI:Create("Button")
+            addSpellButton:SetText("Add Spell")
+            addSpellButton:SetWidth(150)              
+            addSpellButton:SetCallback("OnClick", function(widget) 
+                if conditionPickerFrame then
+                    conditionPickerFrame:Fire("OnClose")
                 end
-                DPSGenie:showConditionPicker(rotaTitle, ks)
-            end)        
-            if not readOnly then    
-                rotaPartHolder:AddChild(addConditionButton)
-            end
-
-            local deleteSpellButton = AceGUI:Create("Button")
-            deleteSpellButton:SetText("Delete Spell")
-            deleteSpellButton:SetWidth(20)  
-            deleteSpellButton:SetHeight(20)          
-            deleteSpellButton:SetCallback("OnClick", function(widget) 
-                local dialog = StaticPopup_Show("CONFIRM_DELETE_SPELL", name)
-                if dialog then
-                    dialog.data = ks
-                    dialog.data2 = rotaTitle
-                end
+                DPSGenie:showSpellPicker(rotaTitle, group)
             end)   
-            table.insert(customButtons, deleteSpellButton)   
-            --rotaPartHolder:AddChild(deleteSpellButton)
-            
-            deleteSpellButton.frame:ClearAllPoints()
-            deleteSpellButton.frame:SetParent(rotaPartHolder.frame)
-            deleteSpellButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -10, -25)
-            deleteSpellButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\close.tga")
+
             if not readOnly then
-                deleteSpellButton.frame:Show()
+                self:AddChild(addSpellButton)
             end
 
-            local moveSpellUpButton = AceGUI:Create("Button")
-            moveSpellUpButton:SetWidth(20)   
-            moveSpellUpButton:SetHeight(20)           
-            moveSpellUpButton:SetCallback("OnClick", function(widget) 
-                --print("moveup " .. rotaTitle .. " io: " .. ks .. " in: " .. ks-1)
-                DPSGenie:swapSpells(rotaTitle, ks, ks-1)
-            end) 
-            
-            moveSpellUpButton.frame:ClearAllPoints()
-            moveSpellUpButton.frame:SetParent(rotaPartHolder.frame)
-            moveSpellUpButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", -35, -25)
-            moveSpellUpButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\up.tga")
-            if ks ~= 1 then
-                if not readOnly then
-                    moveSpellUpButton.frame:Show()
-                end
-            end
-            table.insert(customButtons, moveSpellUpButton)
-            --rotaPartHolder:AddChild(moveSpellUpButton)
+            groupScrollFrame:DoLayout()
 
-            local moveSpellDownButton = AceGUI:Create("Button")
-            moveSpellDownButton:SetWidth(20)   
-            moveSpellDownButton:SetHeight(20)           
-            moveSpellDownButton:SetCallback("OnClick", function(widget) 
-                --print("movedown " .. rotaTitle .. " io: " .. ks .. " in: " .. ks+1)
-                DPSGenie:swapSpells(rotaTitle, ks, ks+1)
-            end)   
-            moveSpellDownButton.frame:ClearAllPoints()
-            moveSpellDownButton.frame:SetParent(rotaPartHolder.frame)
-            local xpos = -60
-            if ks == 1 then
-                xpos = -35
-            end
-            moveSpellDownButton.frame:SetPoint("TOPRIGHT", rotaPartHolder.frame, "TOPRIGHT", xpos, -25)
-            moveSpellDownButton.frame:SetNormalTexture("Interface\\Addons\\DPSGenie\\Images\\down.tga")
-            if ks ~= #rotaData.spells then
-                if not readOnly then
-                    moveSpellDownButton.frame:Show()
-                end
-            end
-            table.insert(customButtons, moveSpellDownButton)
-            --rotaPartHolder:AddChild(moveSpellDownButton)
-
-
-            --should be called last
-            labelRotaHeader:AddChild(rotaPartHolder)
         end
-    end
+    end)
+    tab:SelectTab(1)
+    groupScrollFrame:AddChild(tab)
+    --tab:SelectTab(1)
 
-    local addSpellButton = AceGUI:Create("Button")
-    addSpellButton:SetText("Add Spell")
-    addSpellButton:SetWidth(150)              
-    addSpellButton:SetCallback("OnClick", function(widget) 
-        if conditionPickerFrame then
-            conditionPickerFrame:Fire("OnClose")
-        end
-        DPSGenie:showSpellPicker(rotaTitle)
-    end)   
-
-    if not readOnly then
-        groupScrollFrame:AddChild(addSpellButton)
-    end
-
-    --[[
-    local mlCodeEdit = AceGUI:Create("MultiLineEditBox")
-    mlCodeEdit:SetFullWidth(true)
-    mlCodeEdit:SetHeight(400)
-    --mlCodeEdit:SetLayout("Fill")
-	mlCodeEdit:SetNumLines(30)
-    groupScrollFrame:AddChild(mlCodeEdit)
-    ]]--
 end

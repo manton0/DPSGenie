@@ -10,6 +10,7 @@ local DPSGenieButtonHolderFrame1, DPSGenieButtonHolderFrame2
 
 local currentPulseFrame
 
+--TODO: add option for user defined color
 function DPSGenie:CreatePulseFrame(parentFrame)
     local pulseFrame = CreateFrame("Frame", nil, UIParent)
     pulseFrame:SetSize(parentFrame:GetWidth(), parentFrame:GetHeight())
@@ -20,8 +21,8 @@ function DPSGenie:CreatePulseFrame(parentFrame)
           tile = true, tileSize = 16, edgeSize = 16,
           insets = { left = 4, right = 4, top = 4, bottom = 4 }
     })
-    pulseFrame:SetBackdropColor(0, 0, 0, 0)  -- Hintergrundfarbe transparent machen
-    pulseFrame:SetBackdropBorderColor(1, 1, 0, 1)  -- Gelbe Border setzen
+    pulseFrame:SetBackdropColor(0, 0, 0, 0)  
+    pulseFrame:SetBackdropBorderColor(1, 1, 0, 1)
     pulseFrame:SetAlpha(0.8)
     pulseFrame:SetFrameStrata("HIGH")
     
@@ -146,7 +147,7 @@ local function eventHandler(self, event, ...)
 end
 DPSGenieSpellButtonHandler:SetScript("OnEvent", eventHandler);
 
-
+--TODO: refactor tot SetSuggestSpell(buttonNum, spellId, iconModifiers)
 function DPSGenie:SetFirstSuggestSpell(spellId, iconModifiers)
     DPSGenie:HidePulseFrame()
     if not spellId then
@@ -216,10 +217,10 @@ function DPSGenie:SetSecondSuggestSpell(spellId, iconModifiers)
     end
 end
 
--- Erstelle das Hauptframe des Addons
+
 local DPSGenieButtonHolderFrame = CreateFrame("Frame", "DPSGenieButtonHolderFrame", UIParent)
 DPSGenieButtonHolderFrame:SetSize(300, 84)
-DPSGenieButtonHolderFrame:SetPoint("TOP", UIParent, "TOP", 0, -10) -- Setze den Frame oben und verschiebe ihn um 10 Pixel nach unten
+DPSGenieButtonHolderFrame:SetPoint("TOP", UIParent, "TOP", 0, -10)
 DPSGenieButtonHolderFrame:SetMovable(true)
 DPSGenieButtonHolderFrame:EnableMouse(true)
 DPSGenieButtonHolderFrame:RegisterForDrag("LeftButton")
@@ -242,7 +243,9 @@ DPSGenieButtonHolderFrame:SetScript('OnLeave', function()
 end)
 
 
--- Erstelle den ersten Frame mit Textur
+
+--TODO: make this dynamic for more buttons!
+--first frame
 DPSGenieButtonHolderFrame1 = CreateFrame("Frame", "DPSGenieButtonHolderFrame1", DPSGenieButtonHolderFrame)
 DPSGenieButtonHolderFrame1:SetSize(64, 64)
 DPSGenieButtonHolderFrame1:SetPoint("TOPLEFT", DPSGenieButtonHolderFrame, "TOPLEFT", 10, -10)
@@ -258,7 +261,7 @@ FirstSpellFrame:SetAllPoints(true)
 DPSGenieButtonHolderFrame1:Hide()
 
 
--- Erstelle den zweiten Frame mit Textur
+--second frame
 DPSGenieButtonHolderFrame2 = CreateFrame("Frame", "DPSGenieButtonHolderFrame2", DPSGenieButtonHolderFrame)
 DPSGenieButtonHolderFrame2:SetSize(64, 64)
 DPSGenieButtonHolderFrame2:SetPoint("TOPLEFT", DPSGenieButtonHolderFrame, "TOPLEFT", 79, -10)

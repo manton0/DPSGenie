@@ -89,6 +89,8 @@ local defaultSettings = {
 function DPSGenie:OnInitialize()
     --self.db = LibStub("AceDB-3.0"):New("DPSGenieDB", defaultSettings)
     self.db = LibStub("AceDB-3.0"):New("DPSGenieRotaDB", defaultSettings)
+
+    --TODO: built spell list here
 end
 
 function DPSGenie:SaveSettingToProfile(setting, value)

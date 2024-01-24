@@ -2,7 +2,7 @@
 ## Title: DPSGenie
 ## Notes: DPSGenie will help you perform your defined rotation to maximize your DPS!
 ## Author: mazer (Discord: the_mazer)
-## Version: 0.1-alpha
+## Version: 0.2
 ## SavedVariables: DPSGenieDB, DPSGenieRotaDB
 
 embeds.xml
