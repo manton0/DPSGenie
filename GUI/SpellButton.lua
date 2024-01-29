@@ -8,36 +8,44 @@ local AceGUI = LibStub("AceGUI-3.0")
 local FirstSpellFrame, SecondSpellFrame
 local DPSGenieButtonHolderFrame1, DPSGenieButtonHolderFrame2
 
-local currentPulseFrame
+local currentPulseFrame = {}
+local pulseFrame = {}
+
+local borderColors = {
+    [1] = {1, 1, 0, 1},
+    [2] = {0, 1, 1, 1},
+    [3] = {0, 1, 0.5, 1},
+    [4] = {1, 0, 1, 1}
+}
 
 --TODO: add option for user defined color
-function DPSGenie:CreatePulseFrame(parentFrame)
-    local pulseFrame = CreateFrame("Frame", nil, UIParent)
-    pulseFrame:SetSize(parentFrame:GetWidth(), parentFrame:GetHeight())
-    pulseFrame:SetPoint("CENTER", parentFrame, "CENTER")
-    pulseFrame:SetBackdrop({
+function DPSGenie:CreatePulseFrame(id, parentFrame)
+    pulseFrame[id] = CreateFrame("Frame", nil, UIParent)
+    pulseFrame[id]:SetSize(parentFrame:GetWidth(), parentFrame:GetHeight())
+    pulseFrame[id]:SetPoint("CENTER", parentFrame, "CENTER")
+    pulseFrame[id]:SetBackdrop({
           bgFile = "Interface/Tooltips/UI-Tooltip-Background",
           edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
           tile = true, tileSize = 16, edgeSize = 16,
           insets = { left = 4, right = 4, top = 4, bottom = 4 }
     })
-    pulseFrame:SetBackdropColor(0, 0, 0, 0)  
-    pulseFrame:SetBackdropBorderColor(1, 1, 0, 1)
-    pulseFrame:SetAlpha(0.8)
-    pulseFrame:SetFrameStrata("HIGH")
+    pulseFrame[id]:SetBackdropColor(0, 0, 0, 0)  
+    pulseFrame[id]:SetBackdropBorderColor(unpack(borderColors[id]))
+    pulseFrame[id]:SetAlpha(0.8)
+    pulseFrame[id]:SetFrameStrata("TOOLTIP")
     
     local scaleUp = true
     local scaleFactor = 1.0
     local pulseSpeed = 0.01
     
-    local function PulseFrame()
+    local function PulseFrame(id)
        if scaleUp then
           scaleFactor = scaleFactor + pulseSpeed
        else
           scaleFactor = scaleFactor - pulseSpeed
        end
        
-       pulseFrame:SetScale(scaleFactor)
+       pulseFrame[id]:SetScale(scaleFactor)
        
        if scaleFactor > 1.2 then
           scaleUp = false
@@ -47,29 +55,29 @@ function DPSGenie:CreatePulseFrame(parentFrame)
     end
     
     local onUpdate = function()
-       PulseFrame()
+       PulseFrame(id)
     end
     
-    pulseFrame:SetScript("OnUpdate", onUpdate)
+    pulseFrame[id]:SetScript("OnUpdate", onUpdate)
     
-    pulseFrame.HidePulse = function()
-       pulseFrame:SetScript("OnUpdate", nil)
-       pulseFrame:SetScale(1.0)
-       pulseFrame:Hide()
+    pulseFrame[id].HidePulse = function()
+       pulseFrame[id]:SetScript("OnUpdate", nil)
+       pulseFrame[id]:SetScale(1.0)
+       pulseFrame[id]:Hide()
     end
     
-    return pulseFrame
+    return pulseFrame[id]
  end
  
- function DPSGenie:ShowPulseFrame(parentFrame)
+ function DPSGenie:ShowPulseFrame(id, parentFrame)
     DPSGenie:HidePulseFrame()
-    currentPulseFrame = DPSGenie:CreatePulseFrame(parentFrame)
-    currentPulseFrame:Show()
+    currentPulseFrame[id] = DPSGenie:CreatePulseFrame(id, parentFrame)
+    currentPulseFrame[id]:Show()
  end
 
- function DPSGenie:HidePulseFrame()
-    if currentPulseFrame then
-        currentPulseFrame:HidePulse()
+ function DPSGenie:HidePulseFrame(id)
+    if currentPulseFrame[id] then
+        currentPulseFrame[id]:HidePulse()
     end
  end
 
@@ -147,75 +155,111 @@ local function eventHandler(self, event, ...)
 end
 DPSGenieSpellButtonHandler:SetScript("OnEvent", eventHandler);
 
---TODO: refactor tot SetSuggestSpell(buttonNum, spellId, iconModifiers)
-function DPSGenie:SetFirstSuggestSpell(spellId, iconModifiers)
-    DPSGenie:HidePulseFrame()
+
+
+--hacky!
+--TODO: decrease _G calls
+local numCreatedButtons = 0
+function DPSGenie:SetupSpellButtons(count)
+    --print("setting up " .. count .. " buttons")
+    if numCreatedButtons > 0 then
+        --clear old buttons
+        --print("have " .. numCreatedButtons .. " old buttons, clearing")
+        for i = 1, numCreatedButtons, 1 do
+            print("clearing no: " .. i)
+            _G["DPSGenieButtonHolderFrame" .. i]:Hide()
+            _G["DPSGenieButtonHolderFrame" .. i] = nil
+            _G["DPSGenieSpellFrame" .. i]:Hide()
+            _G["DPSGenieSpellFrame" .. i] = nil
+        end
+        numCreatedButtons = 0
+    end
+
+    for i = 1, count, 1 do
+        _G["DPSGenieButtonHolderFrame" .. i] = CreateFrame("Frame", ("DPSGenieButtonHolderFrame"..1), DPSGenieButtonHolderFrame)
+        _G["DPSGenieButtonHolderFrame" .. i]:SetSize(64, 64)
+        _G["DPSGenieButtonHolderFrame" .. i]:SetPoint("TOPLEFT", DPSGenieButtonHolderFrame, "TOPLEFT", (10 + (69 * (i-1))), -10)
+
+        _G["DPSGenieButtonHolderFrame" .. i].text = _G["DPSGenieButtonHolderFrame" .. i]:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        _G["DPSGenieButtonHolderFrame" .. i].text:SetPoint("BOTTOMLEFT", _G["DPSGenieButtonHolderFrame" .. i], "BOTTOMLEFT", 5, 5)
+        _G["DPSGenieButtonHolderFrame" .. i].text:SetTextColor(1, 1, 1, 1)
+        _G["DPSGenieButtonHolderFrame" .. i].text:SetText("?")
+
+        _G["DPSGenieSpellFrame" .. i] = _G["DPSGenieButtonHolderFrame" .. i]:CreateTexture(nil, "ARTWORK")
+        _G["DPSGenieSpellFrame" .. i]:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+        _G["DPSGenieSpellFrame" .. i]:SetAllPoints(true)
+        _G["DPSGenieButtonHolderFrame" .. i]:Hide()
+        numCreatedButtons = numCreatedButtons + 1
+    end
+end
+
+
+function DPSGenie:SetSuggestSpell(buttonNum, spellId, iconModifiers)
+    --print("setting button " .. buttonNum .. " so spell " .. tostring(spellId))
+    DPSGenie:HidePulseFrame(buttonNum)
     if not spellId then
-        FirstSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") 
-        FirstSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99)
-        DPSGenieButtonHolderFrame1.text:SetText("?")
+        _G["DPSGenieSpellFrame"..buttonNum]:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") 
+        _G["DPSGenieSpellFrame"..buttonNum]:SetVertexColor(0.99, 0.99, 0.99, 0.99)
+        _G["DPSGenieButtonHolderFrame"..buttonNum].text:SetText("?")
         if not DPSGenie:LoadSettingFromProfile("showEmpty") then
-            DPSGenieButtonHolderFrame1:Hide()
+            _G["DPSGenieButtonHolderFrame"..buttonNum]:Hide()
         else
-            DPSGenieButtonHolderFrame1:Show()
+            _G["DPSGenieButtonHolderFrame"..buttonNum]:Show()
         end
     else
         local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellId)
-        FirstSpellFrame:SetTexture(icon)
-        FirstSpellFrame:SetAllPoints(true)
+        _G["DPSGenieSpellFrame"..buttonNum]:SetTexture(icon)
+        _G["DPSGenieSpellFrame"..buttonNum]:SetAllPoints(true)
 
         if iconModifiers and iconModifiers['vertexColor'] ~= nil then
-            FirstSpellFrame:SetVertexColor(unpack(iconModifiers['vertexColor']))
+            _G["DPSGenieSpellFrame"..buttonNum]:SetVertexColor(unpack(iconModifiers['vertexColor']))
         else
-            FirstSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99)
+            _G["DPSGenieSpellFrame"..buttonNum]:SetVertexColor(0.99, 0.99, 0.99, 0.99)
         end
-        DPSGenieButtonHolderFrame1:Show()
+        _G["DPSGenieButtonHolderFrame"..buttonNum]:Show()
 
         if actionSort[name] then
+            --print("keyname: " .. actionSort[name])
             local keybind = shortCut[actionSort[name]]
-            if actionSort[name] <= 12 then
+
+
+            --if actionSort[name] <= 12 then
 
                 if DPSGenie:LoadSettingFromProfile("showSpellFlash") then
+                    --FIXME: see below
                     --TODO: get addon on first run, no need to check on every pulse
                     if _G["BT4Button1"] and _G["BT4Button1"]:IsVisible() then
-                        DPSGenie:ShowPulseFrame(_G["BT4Button"..tostring(actionSort[name])])
+                        DPSGenie:ShowPulseFrame(buttonNum, _G["BT4Button"..tostring(actionSort[name])])
                     elseif _G["ElvUI_Bar1Button1"] and _G["ElvUI_Bar1Button1"]:IsVisible() then
-                        DPSGenie:ShowPulseFrame(_G["ElvUI_Bar1Button"..tostring(actionSort[name])])
+                        DPSGenie:ShowPulseFrame(buttonNum, _G["ElvUI_Bar1Button"..tostring(actionSort[name])])
                     else
-                        DPSGenie:ShowPulseFrame(_G["ActionButton"..tostring(actionSort[name])])
+                        --default action bar
+                        if actionSort[name] > 60 then
+                            DPSGenie:ShowPulseFrame(buttonNum, _G["MultiBarBottomLeftButton"..tostring((actionSort[name] - 60))])
+                        elseif actionSort[name] > 48 then
+                            DPSGenie:ShowPulseFrame(buttonNum, _G["MultiBarBottomRightButton"..tostring((actionSort[name] - 48))])
+                        else
+                            DPSGenie:ShowPulseFrame(buttonNum, _G["ActionButton"..tostring(actionSort[name])])
+                        end
                     end
                 end
+
+            --end
+
+
+
+            if(tostring(keybind) ~= "nil") then
+                _G["DPSGenieButtonHolderFrame"..buttonNum].text:SetText(tostring(keybind))
+            else
+                _G["DPSGenieButtonHolderFrame"..buttonNum].text:SetText("?")
             end
-            DPSGenieButtonHolderFrame1.text:SetText(tostring(keybind))
         else
-            DPSGenieButtonHolderFrame1.text:SetText("?")
+            _G["DPSGenieButtonHolderFrame"..buttonNum].text:SetText("?")
         end
 
     end
-    --print(FirstSpellFrame:GetVertexColor())
 end
 
-function DPSGenie:SetSecondSuggestSpell(spellId, iconModifiers)
-    if not spellId then
-        SecondSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-        SecondSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99) 
-        if not DPSGenie:LoadSettingFromProfile("showEmpty") then
-            DPSGenieButtonHolderFrame2:Hide()
-        else
-            DPSGenieButtonHolderFrame2:Show()
-        end
-    else
-        local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellId)
-        SecondSpellFrame:SetTexture(icon)
-        SecondSpellFrame:SetAllPoints(true)
-        if iconModifiers and iconModifiers['vertexColor'] ~= nil then
-            SecondSpellFrame:SetVertexColor(unpack(iconModifiers['vertexColor']))
-        else
-            SecondSpellFrame:SetVertexColor(0.99, 0.99, 0.99, 0.99)
-        end
-        DPSGenieButtonHolderFrame2:Show()
-    end
-end
 
 
 local DPSGenieButtonHolderFrame = CreateFrame("Frame", "DPSGenieButtonHolderFrame", UIParent)
@@ -241,37 +285,3 @@ DPSGenieButtonHolderFrame:SetScript('OnLeave', function()
     DPSGenieButtonHolderFrame:SetBackdrop(nil)
     DPSGenieButtonHolderFrame:SetBackdropColor(0, 0, 0, 1) 
 end)
-
-
-
---TODO: make this dynamic for more buttons!
---first frame
-DPSGenieButtonHolderFrame1 = CreateFrame("Frame", "DPSGenieButtonHolderFrame1", DPSGenieButtonHolderFrame)
-DPSGenieButtonHolderFrame1:SetSize(64, 64)
-DPSGenieButtonHolderFrame1:SetPoint("TOPLEFT", DPSGenieButtonHolderFrame, "TOPLEFT", 10, -10)
-
-DPSGenieButtonHolderFrame1.text = DPSGenieButtonHolderFrame1:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-DPSGenieButtonHolderFrame1.text:SetPoint("BOTTOMLEFT", DPSGenieButtonHolderFrame1, "BOTTOMLEFT", 5, 5)
-DPSGenieButtonHolderFrame1.text:SetTextColor(1, 1, 1, 1)
-DPSGenieButtonHolderFrame1.text:SetText("?")
-
-FirstSpellFrame = DPSGenieButtonHolderFrame1:CreateTexture(nil, "ARTWORK")
-FirstSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-FirstSpellFrame:SetAllPoints(true)
-DPSGenieButtonHolderFrame1:Hide()
-
-
---second frame
-DPSGenieButtonHolderFrame2 = CreateFrame("Frame", "DPSGenieButtonHolderFrame2", DPSGenieButtonHolderFrame)
-DPSGenieButtonHolderFrame2:SetSize(64, 64)
-DPSGenieButtonHolderFrame2:SetPoint("TOPLEFT", DPSGenieButtonHolderFrame, "TOPLEFT", 79, -10)
-
-DPSGenieButtonHolderFrame2.text = DPSGenieButtonHolderFrame2:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-DPSGenieButtonHolderFrame2.text:SetPoint("BOTTOMLEFT", DPSGenieButtonHolderFrame2, "BOTTOMLEFT", 5, 5)
-DPSGenieButtonHolderFrame2.text:SetTextColor(1, 1, 1, 1)
-DPSGenieButtonHolderFrame2.text:SetText("?")
-
-SecondSpellFrame = DPSGenieButtonHolderFrame2:CreateTexture(nil, "ARTWORK")
-SecondSpellFrame:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-SecondSpellFrame:SetAllPoints(true)
-DPSGenieButtonHolderFrame2:Hide()

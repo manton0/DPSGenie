@@ -484,25 +484,25 @@ function DPSGenie:addSpellToRota(rota, group, spell)
     --print("adding " .. spell .. " to " .. rota)
     table.insert(customRotas[rota].spells[group], {spellId = spell, conditions = {}})
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
-    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom", group)
 end
 
 function DPSGenie:addConditionToSpell(rotaTitle, group, rotaSpell, condition)
     table.insert(customRotas[rotaTitle].spells[group][rotaSpell]["conditions"], condition)
     DPSGenie:SaveCustomRota(rotaTitle, customRotas[rotaTitle])
-    DPSGenie:DrawRotaGroup(rotaTree, rotaTitle, "custom")
+    DPSGenie:DrawRotaGroup(rotaTree, rotaTitle, "custom", group)
 end
 
 function DPSGenie:removeSpellFromRota(rota, group, index)
     table.remove(customRotas[rota].spells[group], index)
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
-    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom", group)
 end
 
 function DPSGenie:removeConditionFromSpell(rota, group, spell, index)
     table.remove(customRotas[rota].spells[group][spell].conditions, index)
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
-    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom", group)
 end
 
 function DPSGenie:swapSpells(rota, group, index1, index2)
@@ -512,13 +512,13 @@ function DPSGenie:swapSpells(rota, group, index1, index2)
         tbl.spells[group][index1], tbl.spells[group][index2] = tbl.spells[group][index2], tbl.spells[group][index1]
     end
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
-    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom", group)
 end 
 
 function DPSGenie:AddNewGroupToRota(rota)
     table.insert(customRotas[rota].spells, {})
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
-    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom", 1)
 end
 
 function DPSGenie:ConvertOldProfileToSubProfile(rota)
@@ -538,7 +538,7 @@ function DPSGenie:ConvertOldProfileToSubProfile(rota)
     customRotas[rota].spells[1] = oldSpells
 
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
-    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom", 1)
 end
 
 
@@ -745,7 +745,7 @@ function DPSGenie:CreateRotaBuilder()
             rotaTitle = strjoin("?", unpack(rotaTitle))
 
             if rotaTitle ~= "" then
-                DPSGenie:DrawRotaGroup(container, rotaTitle, selected)
+                DPSGenie:DrawRotaGroup(container, rotaTitle, selected, 1)
             end
         end
     end)
@@ -830,7 +830,11 @@ local customButtons = {}
 
 
 --TODO: make editbox for name and description a new window, as well for other options
-function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
+function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
+
+    if not tabindex then
+        tabindex = 1
+    end
 
     --remove custom buttons as they were not added as childs
     for btnCnt = 1, #customButtons do
@@ -1238,8 +1242,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
 
         end
     end)
-    tab:SelectTab(1)
+    tab:SelectTab(tabindex)
     groupScrollFrame:AddChild(tab)
-    --tab:SelectTab(1)
+    tab:SelectTab(tabindex)
 
 end
