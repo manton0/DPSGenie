@@ -38,7 +38,7 @@ StaticPopupDialogs["CONFIRM_DELETE_SPELL"] = {
     button2 = "No",
     OnAccept = function (self, data, data2)
         --print("deleting " .. data .. " from " .. data2)
-        DPSGenie:removeSpellFromRota(data2, data)
+        DPSGenie:removeSpellFromRota(data2.rota, data2.group, data)
     end,
     timeout = 0,
     whileDead = true,
@@ -67,8 +67,8 @@ StaticPopupDialogs["CONFIRM_DELETE_CONDITION"] = {
     button1 = "Yes",
     button2 = "No",
     OnAccept = function (self, data, data2)
-        print("delete condition: " .. data.c .. " from spell " .. data.s .. " from rota " .. data2)
-        DPSGenie:removeConditionFromSpell(data2, data.s, data.c)
+        --print("delete condition: " .. data.c .. " from spell " .. data.s .. " from rota " .. data2)
+        DPSGenie:removeConditionFromSpell(data2.rota, data2.group, data.s, data.c)
     end,
     timeout = 0,
     whileDead = true,
@@ -157,7 +157,7 @@ local function get_keys(t)
 end
 
 
-function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
+function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
 
     local baseConditon = {
         unit,
@@ -179,7 +179,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
 
     local addConditionLabel = AceGUI:Create("Label")
     addConditionLabel:SetFullWidth(true)
-    addConditionLabel:SetText("Add Condition to: " .. rotaTitle .. " Spell: " .. rotaSpell)
+    addConditionLabel:SetText("Add Condition to: " .. rotaTitle .. " Group: " .. group .. " Spell: " .. rotaSpell)
 
     local saveButton = AceGUI:Create("Button")
     saveButton:SetDisabled(true)
@@ -338,7 +338,7 @@ function DPSGenie:showConditionPicker(rotaTitle, rotaSpell)
 
         --print("add condition to " .. rotaTitle .. " Spell " .. rotaSpell)
         --print(DPSGenie:dumpTable(baseConditon))
-        DPSGenie:addConditionToSpell(rotaTitle, rotaSpell, baseConditon)
+        DPSGenie:addConditionToSpell(rotaTitle, group, rotaSpell, baseConditon)
         if conditionPickerFrame then
             pcall(conditionPickerFrame:Fire("OnClose")) --pcall ...
         end
@@ -373,7 +373,7 @@ end
 
 --TODO: add option to show all spells available for players, not just learned
 --TODO: add option to ignore rank so spellsuggest will always show hightest rank known
-function DPSGenie:showSpellPicker(rotaTitle)
+function DPSGenie:showSpellPicker(rotaTitle, group)
     spellPickerFrame = AceGUI:Create("Window")
     spellPickerFrame:SetPoint("TOPLEFT", Rotaframe.frame, "TOPRIGHT")
     spellPickerFrame:SetTitle("DPSGenie Spell Picker")
@@ -414,7 +414,7 @@ function DPSGenie:showSpellPicker(rotaTitle)
 
     local addSpellLabel = AceGUI:Create("Label")
     addSpellLabel:SetFullWidth(true)
-    addSpellLabel:SetText("Add spell to: " .. rotaTitle)
+    addSpellLabel:SetText("Add spell to: " .. rotaTitle .. " group " .. group)
 
     local label = AceGUI:Create("InteractiveLabel")
     label:SetWidth(300)
@@ -454,7 +454,7 @@ function DPSGenie:showSpellPicker(rotaTitle)
     saveButton:SetText("Save")
     saveButton:SetWidth(75) 
     saveButton:SetCallback("OnClick", function(widget) 
-        DPSGenie:addSpellToRota(rotaTitle, selectedSpell)
+        DPSGenie:addSpellToRota(rotaTitle, group, selectedSpell)
         if spellPickerFrame then
             spellPickerFrame:Fire("OnClose")
         end
@@ -480,41 +480,66 @@ function DPSGenie:showSpellPicker(rotaTitle)
     spellPickerFrame:Show()
 end
 
-
-function DPSGenie:addSpellToRota(rota, spell)
+function DPSGenie:addSpellToRota(rota, group, spell)
     --print("adding " .. spell .. " to " .. rota)
-    table.insert(customRotas[rota].spells, {spellId = spell, conditions = {}})
+    table.insert(customRotas[rota].spells[group], {spellId = spell, conditions = {}})
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
     DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
 end
 
-function DPSGenie:addConditionToSpell(rotaTitle, rotaSpell, condition)
-    table.insert(customRotas[rotaTitle]["spells"][rotaSpell]["conditions"], condition)
+function DPSGenie:addConditionToSpell(rotaTitle, group, rotaSpell, condition)
+    table.insert(customRotas[rotaTitle].spells[group][rotaSpell]["conditions"], condition)
     DPSGenie:SaveCustomRota(rotaTitle, customRotas[rotaTitle])
     DPSGenie:DrawRotaGroup(rotaTree, rotaTitle, "custom")
 end
 
-function DPSGenie:removeSpellFromRota(rota, index)
-    table.remove(customRotas[rota].spells, index)
+function DPSGenie:removeSpellFromRota(rota, group, index)
+    table.remove(customRotas[rota].spells[group], index)
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
     DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
 end
 
-function DPSGenie:removeConditionFromSpell(rota, spell, index)
-    table.remove(customRotas[rota].spells[spell].conditions, index)
+function DPSGenie:removeConditionFromSpell(rota, group, spell, index)
+    table.remove(customRotas[rota].spells[group][spell].conditions, index)
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
     DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
 end
 
-function DPSGenie:swapSpells(rota, index1, index2)
+function DPSGenie:swapSpells(rota, group, index1, index2)
     tbl = customRotas[rota]
-    if tbl and tbl.spells and tbl.spells[index1] and tbl.spells[index2] then
+    if tbl and tbl.spells and tbl.spells[group] and tbl.spells[group][index1] and tbl.spells[group][index2] then
         --print("would swap")
-        tbl.spells[index1], tbl.spells[index2] = tbl.spells[index2], tbl.spells[index1]
+        tbl.spells[group][index1], tbl.spells[group][index2] = tbl.spells[group][index2], tbl.spells[group][index1]
     end
     DPSGenie:SaveCustomRota(rota, customRotas[rota])
     DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
 end 
+
+function DPSGenie:AddNewGroupToRota(rota)
+    table.insert(customRotas[rota].spells, {})
+    DPSGenie:SaveCustomRota(rota, customRotas[rota])
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+end
+
+function DPSGenie:ConvertOldProfileToSubProfile(rota)
+    local oldSpells = {}
+    --Internal_CopyToClipboard(DPSGenie:dumpTable(customRotas[rota]))
+    print(rota)
+    for index, value in ipairs(customRotas[rota].spells) do
+        table.insert(oldSpells, value)
+    end
+    print(#oldSpells .. " spells in old rota " .. rota)
+
+    for k in pairs (customRotas[rota].spells) do
+        customRotas[rota].spells[k] = nil
+    end
+
+    table.insert(customRotas[rota].spells, {})
+    customRotas[rota].spells[1] = oldSpells
+
+    DPSGenie:SaveCustomRota(rota, customRotas[rota])
+    DPSGenie:DrawRotaGroup(rotaTree, rota, "custom")
+end
 
 
 function DPSGenie:showRotaBuilder()
@@ -822,6 +847,13 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
         readOnly = true
     end
 
+
+    --convert old format to new one
+    if rotaData.spells[1].spellId ~= nil then
+        print("this is an old profile!")
+        DPSGenie:ConvertOldProfileToSubProfile(rotaTitle)
+    end
+
     --group.rotaTitle = rotaTitle
  
     -- Need to redraw again for when icon editbox/button are shown and hidden
@@ -998,6 +1030,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
             table.insert(tabList, #tabList, newTab)
             self:SetTabs(tabList)
             self:SelectTab(#tabList) --why u no work???
+            DPSGenie:AddNewGroupToRota(rotaTitle)
             groupScrollFrame:DoLayout()
         else
             self:ReleaseChildren()
@@ -1076,8 +1109,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                             deleteConditionButton:SetCallback("OnClick", function(widget) 
                                 local dialog = StaticPopup_Show("CONFIRM_DELETE_CONDITION")
                                 if dialog then
-                                    dialog.data = {s = ks, c = kc, g = group}
-                                    dialog.data2 = rotaTitle
+                                    dialog.data = {s = ks, c = kc}
+                                    dialog.data2 = {rota = rotaTitle, group = group}
                                 end
                             end)   
                             table.insert(customButtons, deleteConditionButton)
@@ -1110,7 +1143,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                         if spellPickerFrame then
                             spellPickerFrame:Fire("OnClose")
                         end
-                        DPSGenie:showConditionPicker(rotaTitle, ks, group)
+                        DPSGenie:showConditionPicker(rotaTitle, group, ks)
                     end)        
                     if not readOnly then    
                         rotaPartHolder:AddChild(addConditionButton)
@@ -1123,8 +1156,8 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                     deleteSpellButton:SetCallback("OnClick", function(widget) 
                         local dialog = StaticPopup_Show("CONFIRM_DELETE_SPELL", name)
                         if dialog then
-                            dialog.data = {s = ks, g = group}
-                            dialog.data2 = rotaTitle
+                            dialog.data = ks
+                            dialog.data2 = {rota = rotaTitle, group = group}
                         end
                     end)   
                     table.insert(customButtons, deleteSpellButton)   
@@ -1143,7 +1176,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                     moveSpellUpButton:SetHeight(20)           
                     moveSpellUpButton:SetCallback("OnClick", function(widget) 
                         --print("moveup " .. rotaTitle .. " io: " .. ks .. " in: " .. ks-1)
-                        DPSGenie:swapSpells(rotaTitle, ks, ks-1, group)
+                        DPSGenie:swapSpells(rotaTitle, group, ks, ks-1)
                     end) 
                     
                     moveSpellUpButton.frame:ClearAllPoints()
@@ -1163,7 +1196,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected)
                     moveSpellDownButton:SetHeight(20)           
                     moveSpellDownButton:SetCallback("OnClick", function(widget) 
                         --print("movedown " .. rotaTitle .. " io: " .. ks .. " in: " .. ks+1)
-                        DPSGenie:swapSpells(rotaTitle, ks, ks+1, group)
+                        DPSGenie:swapSpells(rotaTitle, group, ks, ks+1, group)
                     end)   
                     moveSpellDownButton.frame:ClearAllPoints()
                     moveSpellDownButton.frame:SetParent(rotaPartHolder.frame)

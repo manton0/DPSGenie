@@ -35,8 +35,8 @@ function DPSGenie:runRotaTable()
         local success = false
 
         --table.sort(testTable)
-
-        for index, value in ipairs(acitveRota.spells) do
+        --FIXME: hardcoded to first subrota
+        for index, value in ipairs(acitveRota.spells[1]) do
 
             local unit = "target"
 

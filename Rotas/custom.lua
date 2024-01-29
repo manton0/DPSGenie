@@ -70,7 +70,9 @@ local baselayout = {
     description = "",
     timestamp = 0, 
     icon = "Interface\\Icons\\INV_Misc_QuestionMark",
-    spells = {} 
+    spells = {
+        {},
+    } 
 }
 
 function DPSGenie:CreateNewRota(name, descr)
