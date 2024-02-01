@@ -378,15 +378,17 @@ function DPSGenie:showSpellPicker(rotaTitle, group)
     spellPickerFrame:SetPoint("TOPLEFT", Rotaframe.frame, "TOPRIGHT")
     spellPickerFrame:SetTitle("DPSGenie Spell Picker")
     spellPickerFrame:SetWidth(300)
-    spellPickerFrame:SetHeight(200)
+    --spellPickerFrame:SetHeight(200)
+    spellPickerFrame:SetHeight(350)
     spellPickerFrame:SetLayout("List")
     spellPickerFrame:EnableResize(false)
     spellPickerFrame.title:SetScript("OnMouseDown", nil)
     spellPickerFrame.frame:SetFrameStrata("HIGH")
 
     local templist = {}
+    local tablelist = {}
        -- Iteriere über alle Zaubersprüche im Buch des Spielers
-    for i = 1, MAX_SKILLLINE_TABS do
+    for i = 3, MAX_SKILLLINE_TABS do
         local name, texture, offset, numSpells = GetSpellTabInfo(i)
         
         for j = offset + 1, offset + numSpells do
@@ -396,12 +398,30 @@ function DPSGenie:showSpellPicker(rotaTitle, group)
         if spellLink and not isPassive then
             local spellID = tonumber(string.match(spellLink, "spell:(%d+)"))
             local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(spellID)
-            if IsHarmfulSpell(name) or IsHelpfulSpell(name) then
+            --if IsHarmfulSpell(name) or IsHelpfulSpell(name) then
                 templist[format("|T%s:32:32|t %s", icon, name)] = spellID
-            end
+                --if DPSGenie:isValidSpell(spellID) then
+                    --table.insert(tablelist, {format("|T%s:48:48|t %s (%s)", icon, name, rank), spellID})
+                --end
+            --end
             --print(spellID)
         end
         end
+    end
+
+    local entries = C_CharacterAdvancement.GetKnownSpellEntries()
+
+    for index, value in pairs(entries) do
+    --print("num spells: " .. #value.Spells)
+    if value["Type"] == "Ability" or value["Type"] == "TalentAbility" then
+        for si, sv in pairs(value.Spells) do
+            --print(sv)
+            local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(sv)
+            --print(name .. " " .. rank)
+            --table.insert(spelltable, sv)
+            table.insert(tablelist, {format("|T%s:48:48|t %s", icon, name), sv}) 
+        end   
+    end
     end
 
     --table.sort(templist)
@@ -446,9 +466,69 @@ function DPSGenie:showSpellPicker(rotaTitle, group)
         end)
     end)
 
+
+
+    --TODO: make better spellpicker 
+    local ScrollingTable = LibStub("ScrollingTable");
+    local cols = {
+        {
+            ["name"] = "",
+            ["width"] = 240,
+            ["align"] = "LEFT",
+            ["color"] = { 
+                ["r"] = 1, 
+                ["g"] = 1, 
+                ["b"] = 1.0, 
+                ["a"] = 1.0 
+            },
+        },
+        {
+            ["name"] = "ID",
+            ["width"] = 0,
+            ["align"] = "LEFT",
+            ["color"] = { 
+                ["r"] = 1, 
+                ["g"] = 1, 
+                ["b"] = 1.0, 
+                ["a"] = 1.0 
+            },
+        }
+    }
+    local spTable = ScrollingTable:CreateST(cols, 7, 35, nil, spellPickerFrame.frame)
+    spTable.frame:SetPoint("TOPLEFT", spellPickerFrame.frame, "TOPLEFT", 15, -50)
+    local data = tablelist
+    spTable:SetData(data, true)
+    spTable:EnableSelection(true)
+
+    spTable:RegisterEvents({
+        ["OnClick"] = function (rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)
+            --print("spell selected: " .. data[realrow][2])
+            local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(data[realrow][2])
+            selectedSpell = data[realrow][2]
+            saveButton:SetDisabled(false)
+            label:SetImage(icon)
+            label:SetImageSize(32, 32)
+            label:SetText(name)
+        end,
+        ["OnEnter"] = function (rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)
+            --print("on enter spell selected: " .. data[realrow][2])
+            --if data[realrow] ~= nil and data[realrow][2] ~= nil then
+            --    GameTooltip:SetOwner(rowFrame, "ANCHOR_CURSOR")
+            --    GameTooltip:SetHyperlink("spell:" .. data[realrow][2])
+            --    GameTooltip:Show()
+            --end
+        end,
+        ["OnLeave"] = function (rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)
+            --print("on leave spell selected: " .. data[realrow][2])
+            --GameTooltip:Hide()
+        end,
+    });
+
+    --pcall(spellPickerFrame:AddChild(table))
+
     local buttonsContainer = AceGUI:Create("SimpleGroup")
     buttonsContainer:SetFullWidth(true)
-    buttonsContainer:SetFullHeight(true)
+    buttonsContainer:SetHeight(50)
     buttonsContainer:SetLayout("Flow")
 
     saveButton:SetText("Save")
@@ -472,11 +552,18 @@ function DPSGenie:showSpellPicker(rotaTitle, group)
     buttonsContainer:AddChild(cancelButton)
 
     spellPickerFrame:AddChild(addSpellLabel)
-    spellPickerFrame:AddChild(spellPickerDropdown)
-    spellPickerFrame:AddChild(label)
-    spellPickerFrame:AddChild(buttonsContainer)
+    --spellPickerFrame:AddChild(spellPickerDropdown)
+    --spellPickerFrame:AddChild(label)
+    --spellPickerFrame:AddChild(buttonsContainer)
+    buttonsContainer.frame:SetPoint("BOTTOMLEFT", spellPickerFrame.frame, "BOTTOMLEFT", 15, 15)
     
-    spellPickerFrame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+    spellPickerFrame:SetCallback("OnClose", function(widget) 
+        AceGUI:Release(widget); 
+        spTable:Hide(); 
+        spTable.frame = nil; 
+        spTable = nil; 
+        buttonsContainer.frame:Hide();
+    end)
     spellPickerFrame:Show()
 end
 

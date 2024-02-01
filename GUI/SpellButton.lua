@@ -166,7 +166,7 @@ function DPSGenie:SetupSpellButtons(count)
         --clear old buttons
         --print("have " .. numCreatedButtons .. " old buttons, clearing")
         for i = 1, numCreatedButtons, 1 do
-            print("clearing no: " .. i)
+            --print("clearing no: " .. i)
             _G["DPSGenieButtonHolderFrame" .. i]:Hide()
             _G["DPSGenieButtonHolderFrame" .. i] = nil
             _G["DPSGenieSpellFrame" .. i]:Hide()
@@ -188,13 +188,22 @@ function DPSGenie:SetupSpellButtons(count)
         _G["DPSGenieSpellFrame" .. i] = _G["DPSGenieButtonHolderFrame" .. i]:CreateTexture(nil, "ARTWORK")
         _G["DPSGenieSpellFrame" .. i]:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
         _G["DPSGenieSpellFrame" .. i]:SetAllPoints(true)
-        _G["DPSGenieButtonHolderFrame" .. i]:Hide()
+
+        if not DPSGenie:LoadSettingFromProfile("showEmpty") then
+            _G["DPSGenieButtonHolderFrame" .. i]:Hide()
+        else
+            _G["DPSGenieButtonHolderFrame" .. i]:Show()
+        end
+
         numCreatedButtons = numCreatedButtons + 1
     end
 end
 
 
 function DPSGenie:SetSuggestSpell(buttonNum, spellId, iconModifiers)
+    if buttonNum == nil then
+        return
+    end
     --print("setting button " .. buttonNum .. " so spell " .. tostring(spellId))
     DPSGenie:HidePulseFrame(buttonNum)
     if not spellId then
