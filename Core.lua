@@ -51,12 +51,12 @@ function DPSGenie:runRotaTable()
                 local maxSpellID = C_Spell.GetMaxLearnableRank(spell, UnitLevel("player"))
                 if maxSpellID then
                 
-                    print(maxSpellID)
+                    --print(maxSpellID)
 
                     local isKnown = IsSpellKnown(maxSpellID, false)
                     if isKnown then
 
-                        print("is known")
+                        --print("is known")
 
                         spell = maxSpellID
 
