@@ -49,6 +49,11 @@ function DPSGenie:runRotaTable()
 
                 --get max rank
                 local maxSpellID = C_Spell.GetMaxLearnableRank(spell, UnitLevel("player"))
+                --override, for special spells? rankless
+                if maxSpellID == nil then
+                    maxSpellID = spell
+                end
+
                 if maxSpellID then
                 
                     --print(maxSpellID)
