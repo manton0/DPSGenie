@@ -48,15 +48,19 @@ function DPSGenie:runRotaTable()
                 local spell = value["spellId"]
 
                 --get max rank
-                local maxSpellID = C_Spell.GetMaxLearnableRank(spell, UnitLevel("player"))
+                --local maxSpellID = C_Spell.GetMaxLearnableRank(spell, UnitLevel("player"))
                 --override, for special spells? rankless
-                if maxSpellID == nil then
-                    maxSpellID = spell
-                end
 
-                if maxSpellID then
-                
-                    --print(maxSpellID)
+                local spellName = select(1, GetSpellInfo(spell))
+                local spellLink = GetSpellLink(spellName)
+
+                if spellLink ~= nil then
+
+                    local maxSpellID = string.match(spellLink, "spell:(%d+)")
+                    
+                    if maxSpellID == nil then
+                        maxSpellID = spell
+                    end
 
                     local isKnown = IsSpellKnown(maxSpellID, false)
                     if isKnown then
