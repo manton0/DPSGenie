@@ -385,19 +385,42 @@ function DPSGenie:showSpellPicker(rotaTitle, group)
 
     local spelltable = {}
 
-    local entries = C_CharacterAdvancement.GetKnownSpellEntries()
+    local ok, entries = pcall(function() return C_CharacterAdvancement.GetKnownSpellEntries() end)
 
-    for index, value in pairs(entries) do
-    --print("num spells: " .. #value.Spells)
-    if value["Type"] == "Ability" or value["Type"] == "TalentAbility" then
-        for si, sv in pairs(value.Spells) do
-            --print(sv)
-            local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(sv)
-            --print(name .. " " .. rank)
-            --table.insert(spelltable, sv)
-            table.insert(spelltable, {format("|T%s:48:48|t %s", icon, name), sv}) 
-        end   
+    if ok and entries then
+        for index, value in pairs(entries) do
+            if value["Type"] == "Ability" or value["Type"] == "TalentAbility" then
+                for si, sv in pairs(value.Spells) do
+                    local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(sv)
+                    if name and icon then
+                        table.insert(spelltable, {format("|T%s:48:48|t %s", icon, name), sv})
+                    end
+                end
+            end
+        end
     end
+
+    -- Fallback: read spells from spellbook if C_CharacterAdvancement is unavailable or returned no results
+    if #spelltable == 0 then
+        local numTabs = GetNumSpellTabs()
+        for tab = 1, numTabs do
+            local tabName, tabTexture, offset, numSpells = GetSpellTabInfo(tab)
+            for i = offset + 1, offset + numSpells do
+                local spellName, spellRank = GetSpellBookItemName(i, BOOKTYPE_SPELL)
+                if spellName then
+                    local link = GetSpellLink(i, BOOKTYPE_SPELL)
+                    if link then
+                        local sv = tonumber(link:match("spell:(%d+)"))
+                        if sv then
+                            local name, rank, icon = GetSpellInfo(sv)
+                            if name and icon then
+                                table.insert(spelltable, {format("|T%s:48:48|t %s", icon, name), sv})
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
 
 
@@ -496,13 +519,15 @@ function DPSGenie:showSpellPicker(rotaTitle, group)
     buttonsContainer.frame:SetFrameStrata("DIALOG");
     buttonsContainer.frame:Show();
     
-    spellPickerFrame:SetCallback("OnClose", function(widget) 
-        AceGUI:Release(widget); 
+    spellPickerFrame:SetCallback("OnClose", function(widget)
+        AceGUI:Release(widget);
 
-        spTable:Hide(); 
-        spTable.frame = nil; 
-        spTable = nil;
-        
+        if spTable then
+            spTable:Hide();
+            spTable.frame = nil;
+            spTable = nil;
+        end
+
         buttonsContainer.frame:Hide();
     end)
     spellPickerFrame:Show()

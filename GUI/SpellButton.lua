@@ -83,26 +83,27 @@ function DPSGenie:CreatePulseFrame(id, parentFrame)
 
 
 local actionSort = {}
---local actionMacro = {}
---local actionObjet = {}
+local actionMacro = {}
+local actionObjet = {}
 local shortCut = {}
 
 function DPSGenie:IndexSpells(i)
     shortCut[i] = DPSGenie:FindKeybind(i)
     local actionText = GetActionText(i);
-    --if (actionText) then
-    --   actionMacro[actionText] = i
-    --else
+
+    if actionText then
+       actionMacro[actionText] = i
+    else
         local type, id = GetActionInfo(i);
-        if (type=="spell") then
-            if (id~=0) then
-            local spellName, spellRank = GetSpellName(id, BOOKTYPE_SPELL);
-            actionSort[spellName] = i
+        if type == "spell" then
+            if id ~= 0 then
+                local spellName, spellRank = GetSpellName(id, BOOKTYPE_SPELL);
+                actionSort[spellName] = i
             end
-            --elseif (type =="item") then
-            --   self.actionObjet[id] = i
+        elseif type == "item" then
+            actionObjet[id] = i
         end
-    --end
+    end
 end
 
 function DPSGenie:FindKeybind(id)
@@ -148,10 +149,14 @@ local DPSGenieSpellButtonHandler = CreateFrame("FRAME", "DPSGenieSpellButtonHand
 DPSGenieSpellButtonHandler:RegisterEvent("PLAYER_ENTERING_WORLD");
 DPSGenieSpellButtonHandler:RegisterEvent("ACTIONBAR_PAGE_CHANGED");
 DPSGenieSpellButtonHandler:RegisterEvent("ACTIONBAR_SLOT_CHANGED");
+DPSGenieSpellButtonHandler:RegisterEvent("SPELLS_CHANGED");
 
 local function eventHandler(self, event, ...)
     --print("DPSGenieSpellButtonHandler " .. event);
     DPSGenie:GetSpellKeybinds()
+    if event == "SPELLS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
+        DPSGenie:RebuildSpellBookCache()
+    end
 end
 DPSGenieSpellButtonHandler:SetScript("OnEvent", eventHandler);
 
@@ -171,6 +176,10 @@ function DPSGenie:SetupSpellButtons(count)
             _G["DPSGenieButtonHolderFrame" .. i] = nil
             _G["DPSGenieSpellFrame" .. i]:Hide()
             _G["DPSGenieSpellFrame" .. i] = nil
+            if _G["DPSGenieCooldownFrame" .. i] then
+                _G["DPSGenieCooldownFrame" .. i]:Hide()
+                _G["DPSGenieCooldownFrame" .. i] = nil
+            end
         end
         numCreatedButtons = 0
     end
@@ -189,6 +198,9 @@ function DPSGenie:SetupSpellButtons(count)
         _G["DPSGenieSpellFrame" .. i]:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
         _G["DPSGenieSpellFrame" .. i]:SetAllPoints(true)
 
+        _G["DPSGenieCooldownFrame" .. i] = CreateFrame("Cooldown", "DPSGenieCooldownFrame" .. i, _G["DPSGenieButtonHolderFrame" .. i])
+        _G["DPSGenieCooldownFrame" .. i]:SetAllPoints(_G["DPSGenieButtonHolderFrame" .. i])
+
         if not DPSGenie:LoadSettingFromProfile("showEmpty") then
             _G["DPSGenieButtonHolderFrame" .. i]:Hide()
         else
@@ -204,20 +216,44 @@ function DPSGenie:SetSuggestSpell(buttonNum, spellId, iconModifiers)
     if buttonNum == nil then
         return
     end
+
     --print("setting button " .. buttonNum .. " so spell " .. tostring(spellId))
     DPSGenie:HidePulseFrame(buttonNum)
     if not spellId then
-        _G["DPSGenieSpellFrame"..buttonNum]:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") 
+        _G["DPSGenieSpellFrame"..buttonNum]:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
         _G["DPSGenieSpellFrame"..buttonNum]:SetVertexColor(0.99, 0.99, 0.99, 0.99)
         _G["DPSGenieButtonHolderFrame"..buttonNum].text:SetText("?")
+        if _G["DPSGenieCooldownFrame"..buttonNum] then
+            _G["DPSGenieCooldownFrame"..buttonNum]:Hide()
+        end
         if not DPSGenie:LoadSettingFromProfile("showEmpty") then
             _G["DPSGenieButtonHolderFrame"..buttonNum]:Hide()
         else
             _G["DPSGenieButtonHolderFrame"..buttonNum]:Show()
         end
     else
-        local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellId)
-        _G["DPSGenieSpellFrame"..buttonNum]:SetTexture(icon)
+
+        --TODO: needs check for id prefix s:, i:, l: and none to get right texture
+        local actionType = string.sub(spellId, 1, 1)
+        local actionId = string.match(spellId, "%d+")
+
+        local buttonTexture
+        local name
+
+        if actionType == "l" then
+            --lua
+        elseif actionType == "i" then
+            --item
+        else
+            --spell
+            local rank, icon, castTime, minRange, maxRange, spellID, originalIcon
+            name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(actionId)
+            buttonTexture = icon
+        end
+        
+
+
+        _G["DPSGenieSpellFrame"..buttonNum]:SetTexture(buttonTexture)
         _G["DPSGenieSpellFrame"..buttonNum]:SetAllPoints(true)
 
         if iconModifiers and iconModifiers['vertexColor'] ~= nil then
@@ -225,6 +261,17 @@ function DPSGenie:SetSuggestSpell(buttonNum, spellId, iconModifiers)
         else
             _G["DPSGenieSpellFrame"..buttonNum]:SetVertexColor(0.99, 0.99, 0.99, 0.99)
         end
+
+        if _G["DPSGenieCooldownFrame"..buttonNum] then
+            if iconModifiers and iconModifiers['cooldown'] then
+                local cd = iconModifiers['cooldown']
+                _G["DPSGenieCooldownFrame"..buttonNum]:Show()
+                _G["DPSGenieCooldownFrame"..buttonNum]:SetCooldown(cd.start, cd.duration)
+            else
+                _G["DPSGenieCooldownFrame"..buttonNum]:Hide()
+            end
+        end
+
         _G["DPSGenieButtonHolderFrame"..buttonNum]:Show()
 
         if actionSort[name] then

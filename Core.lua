@@ -9,6 +9,30 @@ function DPSGenie:addToDebugTable(text)
     table.insert(debugTable, text)
 end
 
+-- Spellbook index cache for reliable spell lookups (name -> bookIndex)
+local spellBookIndexCache = {}
+
+function DPSGenie:RebuildSpellBookCache()
+    spellBookIndexCache = {}
+    local numTabs = GetNumSpellTabs()
+    for tab = 1, numTabs do
+        local _, _, offset, numSpells = GetSpellTabInfo(tab)
+        for i = offset + 1, offset + numSpells do
+            local bName = GetSpellBookItemName(i, BOOKTYPE_SPELL)
+            if bName then
+                spellBookIndexCache[bName] = i
+            end
+        end
+    end
+end
+
+function DPSGenie:FindSpellBookIndex(spellName)
+    if not next(spellBookIndexCache) then
+        DPSGenie:RebuildSpellBookCache()
+    end
+    return spellBookIndexCache[spellName]
+end
+
 local acitveRota
 
 function DPSGenie:SetActiveRota(rotaTable)
@@ -32,6 +56,24 @@ function DPSGenie:runRotaTable()
     end
     debugTable = {}
 
+    local shouldHide = false
+    if DPSGenie:LoadSettingFromProfile("onlyInCombat") and not UnitAffectingCombat("player") then
+        shouldHide = true
+    end
+    if DPSGenie:LoadSettingFromProfile("onlyWithTarget") and not UnitExists("target") then
+        shouldHide = true
+    end
+    if shouldHide then
+        if _G["DPSGenieButtonHolderFrame"] then
+            _G["DPSGenieButtonHolderFrame"]:Hide()
+        end
+        return
+    else
+        if _G["DPSGenieButtonHolderFrame"] then
+            _G["DPSGenieButtonHolderFrame"]:Show()
+        end
+    end
+
     if acitveRota then
         local currentIndex 
 
@@ -50,6 +92,7 @@ function DPSGenie:runRotaTable()
                 --override, for special spells? rankless
 
                 local basechecks = false
+                local iconModifiers = {}
 
                 local action = value["spellId"]
                 local actionType = string.sub(action, 1, 1)
@@ -91,34 +134,41 @@ function DPSGenie:runRotaTable()
                             end
 
                             local usable, nomana = IsUsableSpell(name)
-                            local start, duration, enable = GetSpellCooldown(name)
-                            local currentCharges, maxCharges, cooldownStart, cooldownDuration, chargeModRate = GetSpellCharges(spell)
+                            local start, duration, enable = GetSpellCooldown(tonumber(spell))
+                            local currentCharges, maxCharges, cooldownStart, cooldownDuration, chargeModRate = GetSpellCharges(tonumber(spell))
+
+                            -- Range check: try spell name first, fall back to spellbook index
                             local spellInRange = IsSpellInRange(name, unit)
+                            if spellInRange == nil then
+                                local bookIndex = DPSGenie:FindSpellBookIndex(name)
+                                if bookIndex then
+                                    spellInRange = IsSpellInRange(bookIndex, BOOKTYPE_SPELL, unit)
+                                end
+                            end
 
                             if IsHelpfulSpell(name) then
                                 spellInRange = 1
                             end
 
-                            local iconModifiers = {}
                             if spellInRange == 0 then
                                 iconModifiers['vertexColor'] = {0.9, 0.5, 0.5, 0.7}
                             end
 
-                            --quick hack to check for "gcd"
-                            --TODO: make this an option
-                            local gcdremain = 1.5
-                            if start > 0 then
-                                gcdremain = start + duration - GetTime()
+                            if start > 0 and duration > 0 then
+                                iconModifiers['cooldown'] = {start = start, duration = duration}
                             end
+
+                            --check for GCD vs actual spell cooldown
+                            --duration <= 1.5 means it's only the global cooldown, not a real spell cooldown
+                            local isOnlyGCD = (start > 0 and duration > 0 and duration <= 1.5)
+                            local spellReady = (start == 0 and duration == 0) or isOnlyGCD
 
                             DPSGenie:addToDebugTable("IsUsableSpell: " .. DPSGenie:stateToColor((usable or 0), 1))
                             DPSGenie:addToDebugTable("IsSpellInRange: " .. DPSGenie:stateToColor((spellInRange or 0), 1))
 
-                            local SpellHasCooldown = ((start == 0 and duration == 0) or gcdremain < 1.5)
+                            DPSGenie:addToDebugTable("SpellReady: " .. DPSGenie:stateToColor(tostring(spellReady), "true"))
 
-                            DPSGenie:addToDebugTable("SpellHasCooldown: " .. DPSGenie:stateToColor(tostring(not SpellHasCooldown), "false"))
-
-                            if usable and (spellInRange ~= 0 or DPSGenie:LoadSettingFromProfile("showOutOfRange")) and (((start == 0 and duration == 0) or gcdremain < 1.5) or (maxCharges > 0 and currentCharges > 0)) then
+                            if usable and (spellInRange ~= 0 or DPSGenie:LoadSettingFromProfile("showOutOfRange")) and (spellReady or (maxCharges and maxCharges > 0 and currentCharges and currentCharges > 0)) then
                                 --may recheck this for buffs in combat?
                                 if (UnitCanAttack("player", unit) and IsHarmfulSpell(name)) or IsHelpfulSpell(name) then
                                     basechecks = true

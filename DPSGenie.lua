@@ -68,6 +68,20 @@ local options = {
             set = function(info, val) DPSGenie:SaveSettingToProfile("showKeybind", val) end,
             get = function(info) return DPSGenie:LoadSettingFromProfile("showKeybind") end
         },
+        onlyInCombat = {
+            name = "only show in Combat",
+            desc = "Only shows spell buttons while in combat?",
+            type = "toggle",
+            set = function(info, val) DPSGenie:SaveSettingToProfile("onlyInCombat", val) end,
+            get = function(info) return DPSGenie:LoadSettingFromProfile("onlyInCombat") end
+        },
+        onlyWithTarget = {
+            name = "only show with Target",
+            desc = "Only shows spell buttons when you have a target?",
+            type = "toggle",
+            set = function(info, val) DPSGenie:SaveSettingToProfile("onlyWithTarget", val) end,
+            get = function(info) return DPSGenie:LoadSettingFromProfile("onlyWithTarget") end
+        },
     },
 }
 
@@ -83,6 +97,8 @@ local defaultSettings = {
         showSpellFlash = true,
         showKeybind = true,
         spellFlashType = "default",
+        onlyInCombat = false,
+        onlyWithTarget = false,
     }
 }
 
