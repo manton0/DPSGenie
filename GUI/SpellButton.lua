@@ -54,10 +54,14 @@ function DPSGenie:CreatePulseFrame(id, parentFrame)
        end
     end
     
-    local onUpdate = function()
+    local elapsed_acc = 0
+    local onUpdate = function(self, elapsed)
+       elapsed_acc = elapsed_acc + elapsed
+       if elapsed_acc < 0.03 then return end
+       elapsed_acc = 0
        PulseFrame(id)
     end
-    
+
     pulseFrame[id]:SetScript("OnUpdate", onUpdate)
     
     pulseFrame[id].HidePulse = function()
@@ -70,7 +74,9 @@ function DPSGenie:CreatePulseFrame(id, parentFrame)
  end
  
  function DPSGenie:ShowPulseFrame(id, parentFrame)
-    DPSGenie:HidePulseFrame()
+    for pulseId, _ in pairs(currentPulseFrame) do
+        DPSGenie:HidePulseFrame(pulseId)
+    end
     currentPulseFrame[id] = DPSGenie:CreatePulseFrame(id, parentFrame)
     currentPulseFrame[id]:Show()
  end
@@ -151,11 +157,18 @@ DPSGenieSpellButtonHandler:RegisterEvent("ACTIONBAR_PAGE_CHANGED");
 DPSGenieSpellButtonHandler:RegisterEvent("ACTIONBAR_SLOT_CHANGED");
 DPSGenieSpellButtonHandler:RegisterEvent("SPELLS_CHANGED");
 
+local keybindUpdatePending = false
 local function eventHandler(self, event, ...)
-    --print("DPSGenieSpellButtonHandler " .. event);
-    DPSGenie:GetSpellKeybinds()
+    if not keybindUpdatePending then
+        keybindUpdatePending = true
+        DPSGenie:ScheduleTimer(function()
+            DPSGenie:GetSpellKeybinds()
+            keybindUpdatePending = false
+        end, 0.1)
+    end
     if event == "SPELLS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
         DPSGenie:RebuildSpellBookCache()
+        DPSGenie.cachedSpellList = nil
     end
 end
 DPSGenieSpellButtonHandler:SetScript("OnEvent", eventHandler);
@@ -185,7 +198,7 @@ function DPSGenie:SetupSpellButtons(count)
     end
 
     for i = 1, count, 1 do
-        _G["DPSGenieButtonHolderFrame" .. i] = CreateFrame("Frame", ("DPSGenieButtonHolderFrame"..1), DPSGenieButtonHolderFrame)
+        _G["DPSGenieButtonHolderFrame" .. i] = CreateFrame("Frame", ("DPSGenieButtonHolderFrame"..i), DPSGenieButtonHolderFrame)
         _G["DPSGenieButtonHolderFrame" .. i]:SetSize(64, 64)
         _G["DPSGenieButtonHolderFrame" .. i]:SetPoint("TOPLEFT", DPSGenieButtonHolderFrame, "TOPLEFT", (10 + (69 * (i-1))), -10)
 
@@ -233,22 +246,23 @@ function DPSGenie:SetSuggestSpell(buttonNum, spellId, iconModifiers)
         end
     else
 
-        --TODO: needs check for id prefix s:, i:, l: and none to get right texture
         local actionType = string.sub(spellId, 1, 1)
         local actionId = string.match(spellId, "%d+")
 
-        local buttonTexture
+        local buttonTexture = "Interface\\Icons\\INV_Misc_QuestionMark"
         local name
 
         if actionType == "l" then
-            --lua
+            name = "Lua Script"
         elseif actionType == "i" then
-            --item
+            local itemName, _, _, _, _, _, _, _, _, itemIcon = GetItemInfo(tonumber(actionId))
+            if itemIcon then buttonTexture = itemIcon end
+            name = itemName or "Unknown Item"
         else
             --spell
             local rank, icon, castTime, minRange, maxRange, spellID, originalIcon
             name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(actionId)
-            buttonTexture = icon
+            if icon then buttonTexture = icon end
         end
         
 
@@ -274,38 +288,40 @@ function DPSGenie:SetSuggestSpell(buttonNum, spellId, iconModifiers)
 
         _G["DPSGenieButtonHolderFrame"..buttonNum]:Show()
 
-        if actionSort[name] then
-            --print("keyname: " .. actionSort[name])
-            local keybind = shortCut[actionSort[name]]
+        -- Determine action bar slot: spells use actionSort, items use actionObjet
+        local actionBarSlot
+        if actionType == "i" then
+            actionBarSlot = actionObjet[tonumber(actionId)]
+        elseif name then
+            actionBarSlot = actionSort[name]
+        end
 
-
-            --if actionSort[name] <= 12 then
+        if actionBarSlot then
+            local keybind = shortCut[actionBarSlot]
 
                 if DPSGenie:LoadSettingFromProfile("showSpellFlash") then
-                    --FIXME: see below
-                    --TODO: get addon on first run, no need to check on every pulse
                     if _G["BT4Button1"] and _G["BT4Button1"]:IsVisible() then
-                        DPSGenie:ShowPulseFrame(buttonNum, _G["BT4Button"..tostring(actionSort[name])])
+                        DPSGenie:ShowPulseFrame(buttonNum, _G["BT4Button"..tostring(actionBarSlot)])
                     elseif _G["ElvUI_Bar1Button1"] and _G["ElvUI_Bar1Button1"]:IsVisible() then
-                        DPSGenie:ShowPulseFrame(buttonNum, _G["ElvUI_Bar1Button"..tostring(actionSort[name])])
+                        DPSGenie:ShowPulseFrame(buttonNum, _G["ElvUI_Bar1Button"..tostring(actionBarSlot)])
                     else
                         --default action bar
-                        if actionSort[name] > 60 then
-                            DPSGenie:ShowPulseFrame(buttonNum, _G["MultiBarBottomLeftButton"..tostring((actionSort[name] - 60))])
-                        elseif actionSort[name] > 48 then
-                            DPSGenie:ShowPulseFrame(buttonNum, _G["MultiBarBottomRightButton"..tostring((actionSort[name] - 48))])
+                        if actionBarSlot > 60 then
+                            DPSGenie:ShowPulseFrame(buttonNum, _G["MultiBarBottomLeftButton"..tostring((actionBarSlot - 60))])
+                        elseif actionBarSlot > 48 then
+                            DPSGenie:ShowPulseFrame(buttonNum, _G["MultiBarBottomRightButton"..tostring((actionBarSlot - 48))])
+                        elseif actionBarSlot > 36 then
+                            DPSGenie:ShowPulseFrame(buttonNum, _G["MultiBarLeftButton"..tostring((actionBarSlot - 36))])
+                        elseif actionBarSlot > 24 then
+                            DPSGenie:ShowPulseFrame(buttonNum, _G["MultiBarRightButton"..tostring((actionBarSlot - 24))])
                         else
-                            DPSGenie:ShowPulseFrame(buttonNum, _G["ActionButton"..tostring(actionSort[name])])
+                            DPSGenie:ShowPulseFrame(buttonNum, _G["ActionButton"..tostring(actionBarSlot)])
                         end
                     end
                 end
 
-            --end
-
-
-
-            if(tostring(keybind) ~= "nil") then
-                _G["DPSGenieButtonHolderFrame"..buttonNum].text:SetText(tostring(keybind))
+            if keybind then
+                _G["DPSGenieButtonHolderFrame"..buttonNum].text:SetText(keybind)
             else
                 _G["DPSGenieButtonHolderFrame"..buttonNum].text:SetText("?")
             end

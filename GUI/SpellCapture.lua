@@ -57,7 +57,7 @@ function DPSGenie:showCapture()
         stopButton:SetDisabled(true)
         Captureframe:AddChild(stopButton)
 
-        scrollContainer = AceGUI:Create("SimpleGroup") -- "InlineGroup" is also good
+        local scrollContainer = AceGUI:Create("SimpleGroup") -- "InlineGroup" is also good
         scrollContainer:SetFullWidth(true)
         scrollContainer:SetHeight(Captureframe.frame:GetHeight() - 100)
         scrollContainer:SetLayout("Fill") -- important!

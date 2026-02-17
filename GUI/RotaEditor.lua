@@ -9,19 +9,19 @@ local defaultRotas
 local customRotas
 local conditionPickerFrame, spellPickerFrame
 
-DPSGenieExportString = ""
+DPSGenie.exportString = ""
 
 StaticPopupDialogs["COPY_ROTA_STRING"] = {
-    text = "You can now copy the rota string with CRTL+C",
+    text = "You can now copy the rota string with CTRL+C",
     button1 = "Done",
     OnShow = function (self)
-        self.editBox:SetText(_G["DPSGenieExportString"])
+        self.editBox:SetText(DPSGenie.exportString)
         self.editBox:HighlightText()
         self.editBox:SetFocus()
     end,
     EditBoxOnTextChanged = function (self)
         local parent = self:GetParent();
-        parent.editBox:SetText(_G["DPSGenieExportString"])
+        parent.editBox:SetText(DPSGenie.exportString)
         parent.editBox:HighlightText()
         parent.editBox:SetFocus()
     end,
@@ -77,61 +77,81 @@ StaticPopupDialogs["CONFIRM_DELETE_CONDITION"] = {
 }
 
 
+local numericOps = { "more than", "less than", "equals", "at least", "at most" }
+local auraOps = { "contains", "not contains", "more than", "less than", "equals", "time left more than", "time left less than" }
+
 local conditionTree = {
     ["Player"] = {
-        ["Buffs"] = {
-            "contains",
-            "not contains",
-            "more than",
-            "less than",
-            "equals"
-        },
-        ["Health"] = {
-            "more than",
-            "less than",
-            "equals"
-        },
-        ["Mana"] = {
-            "more than",
-            "less than",
-            "equals"
-        },
-        ["Rage"] = {
-            "more than",
-            "less than",
-            "equals"
-        },
-        ["Energy"] = {
-            "more than",
-            "less than",
-            "equals"
-        },
-        ["Combopoints"] = {
-            "more than",
-            "less than",
-            "equals"
+        ["Buffs"] = auraOps,
+        ["Debuffs"] = auraOps,
+        ["Health"] = numericOps,
+        ["Mana"] = numericOps,
+        ["Rage"] = numericOps,
+        ["Energy"] = numericOps,
+        ["Runic Power"] = numericOps,
+        ["Combopoints"] = numericOps,
+        ["Combat"] = { "in combat", "not in combat" },
+        ["Stance"] = { "equals", "not equals" },
+        ["Spell Cooldown"] = { "available", "on cooldown", "more than", "less than" },
+        ["Spell Charges"] = { "more than", "less than", "equals" },
+        ["Spell Known"] = { "known", "not known" },
+        ["Item Cooldown"] = { "available", "on cooldown" },
+        ["Item Equipped"] = { "is equipped", "is not equipped" },
+        ["Threat"] = {
+            "more than", "less than", "equals",
+            "at least", "at most",
+            "is tanking", "is not tanking",
         },
     },
     ["Target"] = {
-        ["Buffs"] = {
-            "contains",
-            "not contains",
-            "more than",
-            "less than",
-            "equals"
+        ["Buffs"] = auraOps,
+        ["Debuffs"] = auraOps,
+        ["Health"] = numericOps,
+        ["Mana"] = numericOps,
+        ["Casting"] = { "is casting", "is not casting", "is interruptible", "is not interruptible" },
+        ["Classification"] = { "is boss", "is elite", "is player", "is normal" },
+    },
+    ["Focus"] = {
+        ["Buffs"] = auraOps,
+        ["Debuffs"] = auraOps,
+        ["Health"] = numericOps,
+        ["Mana"] = numericOps,
+        ["Casting"] = { "is casting", "is not casting", "is interruptible", "is not interruptible" },
+    },
+    ["Mouseover"] = {
+        ["Buffs"] = auraOps,
+        ["Debuffs"] = auraOps,
+        ["Health"] = numericOps,
+        ["Mana"] = numericOps,
+    },
+    ["Pet"] = {
+        ["Active"] = { "is active", "is not active" },
+        ["Health"] = numericOps,
+        ["Mana"] = numericOps,
+        ["Buffs"] = auraOps,
+        ["Debuffs"] = auraOps,
+        ["Happy"] = { "is happy", "is not happy" },
+        ["Threat"] = {
+            "more than", "less than", "equals",
+            "at least", "at most",
+            "is tanking", "is not tanking",
         },
-        ["Health"] = {
-            "more than",
-            "less than",
-            "equals"
-        },
-       ["Mana"] = {
-            "more than",
-            "less than",
-            "equals"
-        },
-    }
+    },
 }
+
+-- Map condition unit names to WoW API unit tokens
+local unitMap = { ["Player"] = "player", ["Target"] = "target", ["Pet"] = "pet", ["Focus"] = "focus", ["Mouseover"] = "mouseover" }
+
+-- Live-scan current auras on a unit
+local function scanCurrentAuras(wowUnit, filter)
+    local auras = {}
+    for i = 1, 40 do
+        local name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID = UnitAura(wowUnit, i, filter)
+        if not name then break end
+        auras[spellID] = name
+    end
+    return auras
+end
 
 
 function DPSGenie:dumpTable(o)
@@ -159,7 +179,7 @@ end
 
 function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
 
-    local baseConditon = {
+    local baseCondition = {
         unit,
         subject,
         comparer,
@@ -213,7 +233,7 @@ function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
     unitPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
         --print("unit: " .. unitPickerDropdownList[key])
         unitPickerDropdownListKey = key
-        baseConditon.unit = unitPickerDropdownList[key]
+        baseCondition.unit = unitPickerDropdownList[key]
         subjectPickerDropdownList = get_keys(conditionTree[unitPickerDropdownList[unitPickerDropdownListKey]])
         subjectPickerDropdown:SetList(subjectPickerDropdownList)
         subjectPickerDropdown:SetValue(1)
@@ -229,34 +249,104 @@ function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
     
     subjectPickerDropdown:SetLabel("Subject Picker")
     subjectPickerDropdown:SetFullWidth()
-    subjectPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
+    subjectPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key)
         key = key or 1
         --print("subject: " .. subjectPickerDropdownList[key])
         subjectPickerDropdownListKey = key
-        baseConditon.subject = subjectPickerDropdownList[key]
+        baseCondition.subject = subjectPickerDropdownList[key]
+        baseCondition.compare_value = nil
+        drop4 = false
 
-        if baseConditon.subject == "Buffs" then
-            --show buffpicker, hide search
+        local subject = baseCondition.subject
+        local wowUnit = unitMap[baseCondition.unit] or "player"
+
+        if subject == "Buffs" or subject == "Debuffs" then
+            -- Show aura picker, hide search initially
             searchValue.frame:Hide()
             buffPickerDropdown.frame:Show()
+            buffPickerDropdown:SetLabel(subject == "Buffs" and "Buff Select" or "Debuff Select")
             buffSelectList = {}
-            local buffSelect 
 
-            if baseConditon.unit == "Player" then
-                buffSelect = DPSGenie:getCapturedPlayerBuffs()
-            else
-                buffSelect = DPSGenie:getCapturedTargetBuffs()
+            -- Determine aura filter
+            local filter = subject == "Buffs" and "HELPFUL" or "HARMFUL"
+            if subject == "Debuffs" and baseCondition.unit == "Target" then
+                filter = "PLAYER|HARMFUL"
             end
 
-            for k, v in pairs(buffSelect) do
-                local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(k)
-                buffSelectList[k] = format("|T%s:32:32|t %s", icon, name)
+            -- Merge captured auras with live scan
+            local mergedAuras = scanCurrentAuras(wowUnit, filter)
+            local capturedAuras = {}
+            if subject == "Buffs" and baseCondition.unit == "Player" then
+                capturedAuras = DPSGenie:getCapturedPlayerBuffs()
+            elseif subject == "Debuffs" and baseCondition.unit == "Target" then
+                capturedAuras = DPSGenie:getCapturedTargetBuffs()
             end
+            for id, name in pairs(capturedAuras) do mergedAuras[id] = name end
 
+            for id, name in pairs(mergedAuras) do
+                local spellName, rank, icon = GetSpellInfo(id)
+                if spellName and icon then
+                    buffSelectList[id] = format("|T%s:32:32|t %s", icon, spellName)
+                end
+            end
             buffPickerDropdown:SetList(buffSelectList)
 
+        elseif subject == "Spell Cooldown" or subject == "Spell Charges" or subject == "Spell Known" then
+            -- Reuse buff picker dropdown for spell selection
+            searchValue.frame:Hide()
+            buffPickerDropdown.frame:Show()
+            buffPickerDropdown:SetLabel("Spell Select")
+            buffSelectList = {}
+
+            local spellList = DPSGenie.cachedSpellList or DPSGenie:BuildSpellList()
+            DPSGenie.cachedSpellList = spellList
+            for _, row in ipairs(spellList) do
+                buffSelectList[row[2]] = row[1]
+            end
+            buffPickerDropdown:SetList(buffSelectList)
+
+        elseif subject == "Item Cooldown" or subject == "Item Equipped" then
+            -- Reuse buff picker dropdown for item selection
+            searchValue.frame:Hide()
+            buffPickerDropdown.frame:Show()
+            buffPickerDropdown:SetLabel("Item Select")
+            buffSelectList = {}
+
+            local itemTable = DPSGenie:BuildItemList()
+            for _, row in pairs(itemTable) do
+                buffSelectList[row[2]] = row[1]
+            end
+            buffPickerDropdown:SetList(buffSelectList)
+
+        elseif subject == "Stance" then
+            -- Show stance picker dropdown (populated with current stances)
+            searchValue.frame:Hide()
+            buffPickerDropdown.frame:Show()
+            buffPickerDropdown:SetLabel("Stance/Form Select")
+            buffSelectList = {}
+            -- Index 0 = no stance/form
+            buffSelectList[0] = "No Stance/Form"
+            local numForms = GetNumShapeshiftForms and GetNumShapeshiftForms() or 0
+            for i = 1, numForms do
+                local icon, name, isActive = GetShapeshiftFormInfo(i)
+                if name then
+                    buffSelectList[i] = format("|T%s:32:32|t %s", icon or "", name)
+                else
+                    buffSelectList[i] = "Form " .. i
+                end
+            end
+            buffPickerDropdown:SetList(buffSelectList)
+
+        elseif subject == "Combat" or subject == "Active" or subject == "Happy"
+            or subject == "Casting" or subject == "Classification" then
+            -- No additional input needed — comparer alone is sufficient
+            searchValue.frame:Hide()
+            buffPickerDropdown.frame:Hide()
+
         else
+            -- Numeric subjects (Health, Mana, Rage, Energy, Runic Power, Combopoints, Threat)
             searchValue.frame:Show()
+            searchValue:SetLabel("Value")
             buffPickerDropdown.frame:Hide()
         end
 
@@ -273,16 +363,64 @@ function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
     comparerPickerDropdown:SetFullWidth()
     comparerPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key)
         key = key or 1
-        --print("comparer: " .. conditionTree[unitPickerDropdownList[unitPickerDropdownListKey]][subjectPickerDropdownList[subjectPickerDropdownListKey]][key])
-        baseConditon.comparer = conditionTree[unitPickerDropdownList[unitPickerDropdownListKey]][subjectPickerDropdownList[subjectPickerDropdownListKey]][key]
+        baseCondition.comparer = conditionTree[unitPickerDropdownList[unitPickerDropdownListKey]][subjectPickerDropdownList[subjectPickerDropdownListKey]][key]
 
-        if baseConditon.subject == "Buffs" and (baseConditon.comparer == "more than" or baseConditon.comparer == "less than") then
-            --show buffpicker, hide search
+        local subject = baseCondition.subject
+        local comparer = baseCondition.comparer
+
+        if subject == "Buffs" or subject == "Debuffs" then
+            buffPickerDropdown.frame:Show()
+            if comparer == "contains" or comparer == "not contains" then
+                searchValue.frame:Hide()
+            elseif comparer == "time left more than" or comparer == "time left less than" then
+                searchValue.frame:Show()
+                searchValue:SetLabel("Seconds")
+            else -- "more than", "less than", "equals"
+                searchValue.frame:Show()
+                searchValue:SetLabel("Stack Count")
+            end
+
+        elseif subject == "Spell Cooldown" then
+            buffPickerDropdown.frame:Show()
+            if comparer == "available" or comparer == "on cooldown" then
+                searchValue.frame:Hide()
+            else -- "more than", "less than"
+                searchValue.frame:Show()
+                searchValue:SetLabel("Seconds")
+            end
+
+        elseif subject == "Spell Charges" then
+            buffPickerDropdown.frame:Show()
             searchValue.frame:Show()
+            searchValue:SetLabel("Charges")
+
+        elseif subject == "Spell Known" or subject == "Item Cooldown" or subject == "Item Equipped" then
             buffPickerDropdown.frame:Show()
-        elseif baseConditon.subject == "Buffs" and baseConditon.comparer == "contains" then
             searchValue.frame:Hide()
+
+        elseif subject == "Stance" then
             buffPickerDropdown.frame:Show()
+            searchValue.frame:Hide()
+
+        elseif subject == "Combat" or subject == "Active" or subject == "Happy"
+            or subject == "Casting" or subject == "Classification" then
+            searchValue.frame:Hide()
+            buffPickerDropdown.frame:Hide()
+
+        elseif subject == "Threat" then
+            buffPickerDropdown.frame:Hide()
+            if comparer == "is tanking" or comparer == "is not tanking" then
+                searchValue.frame:Hide()
+            else
+                searchValue.frame:Show()
+                searchValue:SetLabel("Percentage")
+            end
+
+        else
+            -- Numeric (Health, Mana, Rage, Energy, Runic Power, Combopoints)
+            buffPickerDropdown.frame:Hide()
+            searchValue.frame:Show()
+            searchValue:SetLabel("Value")
         end
 
         drop3 = true
@@ -298,7 +436,7 @@ function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
     buffPickerDropdown:SetCallback("OnValueChanged", function(widget, event, key) 
         --key = key or 1
         --print("buff select: " .. key)
-        baseConditon.compare_value = key
+        baseCondition.compare_value = key
         drop4 = true
         --saveButton:SetDisabled(not (drop1 and drop2 and drop3 and edittext))
     end)
@@ -322,25 +460,31 @@ function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
     buttonsContainer:SetLayout("Flow")
 
     saveButton:SetText("Save")
-    saveButton:SetWidth(75) 
-    saveButton:SetCallback("OnClick", function(widget) 
-        --AceGUI:Release(widget.parent.parent)
-        baseConditon.search = searchValue:GetText()
+    saveButton:SetWidth(75)
+    saveButton:SetCallback("OnClick", function(widget)
+        baseCondition.search = searchValue:GetText()
 
-        --swap for convenience
-        if baseConditon.search and baseConditon.compare_value then
-            baseConditon.search, baseConditon.compare_value = baseConditon.compare_value, baseConditon.search
+        -- Swap search and compare_value when both are set (buff/spell picker + threshold)
+        if baseCondition.search and baseCondition.search ~= "" and baseCondition.compare_value then
+            baseCondition.search, baseCondition.compare_value = baseCondition.compare_value, baseCondition.search
+        elseif baseCondition.compare_value and (not baseCondition.search or baseCondition.search == "") then
+            -- Only picker value set, no threshold — move to search
+            baseCondition.search = baseCondition.compare_value
+            baseCondition.compare_value = nil
         end
 
-        if not baseConditon.compare_value or baseConditon.compare_value == "" then
-            baseConditon.compare_value = nil
+        if not baseCondition.compare_value or baseCondition.compare_value == "" then
+            baseCondition.compare_value = nil
+        end
+        if not baseCondition.search or baseCondition.search == "" then
+            baseCondition.search = nil
         end
 
         --print("add condition to " .. rotaTitle .. " Spell " .. rotaSpell)
-        --print(DPSGenie:dumpTable(baseConditon))
-        DPSGenie:addConditionToSpell(rotaTitle, group, rotaSpell, baseConditon)
+        --print(DPSGenie:dumpTable(baseCondition))
+        DPSGenie:addConditionToSpell(rotaTitle, group, rotaSpell, baseCondition)
         if conditionPickerFrame then
-            pcall(conditionPickerFrame:Fire("OnClose")) --pcall ...
+            pcall(function() conditionPickerFrame:Fire("OnClose") end)
         end
 
     end)                 
@@ -351,7 +495,7 @@ function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
     cancelButton:SetWidth(75)   
     cancelButton:SetCallback("OnClick", function(widget) 
         if conditionPickerFrame then
-            pcall(conditionPickerFrame:Fire("OnClose"))
+            pcall(function() conditionPickerFrame:Fire("OnClose") end)
         end
     end)                
     buttonsContainer:AddChild(cancelButton)
@@ -371,37 +515,24 @@ function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
 
 end
 
---TODO: add option to show all spells available for players, not just learned (including editbox for filtering)
-function DPSGenie:showSpellPicker(rotaTitle, group)
-    spellPickerFrame = AceGUI:Create("Window")
-    spellPickerFrame:SetPoint("TOPLEFT", Rotaframe.frame, "TOPRIGHT")
-    spellPickerFrame:SetTitle("DPSGenie Spell Picker")
-    spellPickerFrame:SetWidth(300)
-    spellPickerFrame:SetHeight(350)
-    spellPickerFrame:SetLayout("List")
-    spellPickerFrame:EnableResize(false)
-    spellPickerFrame.title:SetScript("OnMouseDown", nil)
-    spellPickerFrame.frame:SetFrameStrata("HIGH")
-
-    local spelltable = {}
-
+function DPSGenie:BuildSpellList()
+    local spellList = {}
     local ok, entries = pcall(function() return C_CharacterAdvancement.GetKnownSpellEntries() end)
-
     if ok and entries then
         for index, value in pairs(entries) do
             if value["Type"] == "Ability" or value["Type"] == "TalentAbility" then
                 for si, sv in pairs(value.Spells) do
-                    local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(sv)
+                    local name, rank, icon = GetSpellInfo(sv)
                     if name and icon then
-                        table.insert(spelltable, {format("|T%s:48:48|t %s", icon, name), sv})
+                        local rankText = (rank and rank ~= "") and rank or ""
+                        table.insert(spellList, {format("|T%s:32:32|t %s", icon, name), sv, rankText})
                     end
                 end
             end
         end
     end
-
-    -- Fallback: read spells from spellbook if C_CharacterAdvancement is unavailable or returned no results
-    if #spelltable == 0 then
+    -- Fallback: spellbook scan for class-bound realms
+    if #spellList == 0 then
         local numTabs = GetNumSpellTabs()
         for tab = 1, numTabs do
             local tabName, tabTexture, offset, numSpells = GetSpellTabInfo(tab)
@@ -414,7 +545,8 @@ function DPSGenie:showSpellPicker(rotaTitle, group)
                         if sv then
                             local name, rank, icon = GetSpellInfo(sv)
                             if name and icon then
-                                table.insert(spelltable, {format("|T%s:48:48|t %s", icon, name), sv})
+                                local rankText = (rank and rank ~= "") and rank or ""
+                                table.insert(spellList, {format("|T%s:32:32|t %s", icon, name), sv, rankText})
                             end
                         end
                     end
@@ -422,113 +554,288 @@ function DPSGenie:showSpellPicker(rotaTitle, group)
             end
         end
     end
+    return spellList
+end
 
+function DPSGenie:BuildItemList()
+    local itemList = {}
+    -- Scan bags (0-4) for usable items
+    for bag = 0, 4 do
+        local numSlots = GetContainerNumSlots(bag)
+        for slot = 1, numSlots do
+            local itemID = GetContainerItemID(bag, slot)
+            if itemID then
+                local itemSpell = GetItemSpell(itemID)
+                if itemSpell then
+                    local itemName, _, itemQuality, _, _, _, _, _, _, itemIcon = GetItemInfo(itemID)
+                    if itemName and itemIcon then
+                        local itemCount = GetItemCount(itemID)
+                        local infoText = "x" .. itemCount
+                        if not itemList["i:" .. itemID] then
+                            local r, g, b = 1, 1, 1
+                            if itemQuality then
+                                r, g, b = GetItemQualityColor(itemQuality)
+                            end
+                            local displayName = format("|T%s:32:32|t |cff%02x%02x%02x%s|r", itemIcon, r*255, g*255, b*255, itemName)
+                            itemList["i:" .. itemID] = {displayName, "i:" .. itemID, infoText}
+                        end
+                    end
+                end
+            end
+        end
+    end
+    -- Scan equipped items (trinkets slots 13-14, plus other on-use slots)
+    for equipSlot = 1, 19 do
+        local itemID = GetInventoryItemID("player", equipSlot)
+        if itemID then
+            local itemSpell = GetItemSpell(itemID)
+            if itemSpell then
+                local itemName, _, itemQuality, _, _, _, _, _, _, itemIcon = GetItemInfo(itemID)
+                if itemName and itemIcon and not itemList["i:" .. itemID] then
+                    local r, g, b = 1, 1, 1
+                    if itemQuality then
+                        r, g, b = GetItemQualityColor(itemQuality)
+                    end
+                    local displayName = format("|T%s:32:32|t |cff%02x%02x%02x%s|r", itemIcon, r*255, g*255, b*255, itemName)
+                    itemList["i:" .. itemID] = {displayName, "i:" .. itemID, "Equipped"}
+                end
+            end
+        end
+    end
+    -- Convert to array
+    local result = {}
+    for _, row in pairs(itemList) do
+        table.insert(result, row)
+    end
+    return result
+end
 
+function DPSGenie:showSpellPicker(rotaTitle, group)
+    spellPickerFrame = AceGUI:Create("Window")
+    spellPickerFrame:SetPoint("TOPLEFT", Rotaframe.frame, "TOPRIGHT")
+    spellPickerFrame:SetTitle("DPSGenie Spell Picker")
+    spellPickerFrame:SetWidth(420)
+    spellPickerFrame:SetHeight(610)
+    spellPickerFrame:SetLayout("List")
+    spellPickerFrame:EnableResize(false)
+    spellPickerFrame.title:SetScript("OnMouseDown", nil)
+    spellPickerFrame.frame:SetFrameStrata("HIGH")
+
+    -- Build or reuse cached lists
+    if not DPSGenie.cachedSpellList then
+        DPSGenie.cachedSpellList = DPSGenie:BuildSpellList()
+    end
+
+    local fullSpellTable = DPSGenie.cachedSpellList
+    local fullItemTable = DPSGenie:BuildItemList()
+    local spTable
+    local pickerMode = "spells"
+
+    -- Filter state
+    local showHighestRankOnly = true
+    local searchQuery = ""
+    local emptyLabel
+
+    local function applyFilters()
+        local source
+        if pickerMode == "items" then
+            source = fullItemTable
+        else
+            source = fullSpellTable
+        end
+
+        -- Highest rank filter (spells only)
+        if pickerMode == "spells" and showHighestRankOnly then
+            local highestByName = {}
+            for _, row in ipairs(source) do
+                local name = select(1, GetSpellInfo(row[2]))
+                if name then
+                    if not highestByName[name] or row[2] > highestByName[name][2] then
+                        highestByName[name] = row
+                    end
+                end
+            end
+            source = {}
+            for _, row in pairs(highestByName) do
+                table.insert(source, row)
+            end
+        end
+
+        -- Text search filter
+        if searchQuery ~= "" then
+            local query = string.lower(searchQuery)
+            local result = {}
+            for _, row in ipairs(source) do
+                local name
+                local id = row[2]
+                if type(id) == "string" and string.sub(id, 1, 2) == "i:" then
+                    name = select(1, GetItemInfo(tonumber(string.sub(id, 3)))) or ""
+                else
+                    name = select(1, GetSpellInfo(id)) or ""
+                end
+                if string.find(string.lower(name), query, 1, true) then
+                    table.insert(result, row)
+                end
+            end
+            source = result
+        end
+
+        if spTable then
+            spTable:SetData(source, true)
+        end
+        -- Show/hide empty state message
+        if emptyLabel then
+            if #source == 0 then
+                emptyLabel:SetText("|cFFFF0000No " .. pickerMode .. " found.|r")
+                emptyLabel.frame:Show()
+            else
+                emptyLabel.frame:Hide()
+            end
+        end
+        return source
+    end
+
+    -- Header label
     local addSpellLabel = AceGUI:Create("Label")
     addSpellLabel:SetFullWidth(true)
     addSpellLabel:SetText("Add spell to: " .. rotaTitle .. " group " .. group)
 
+    -- Picker mode dropdown (Spells / Items)
+    local modeDropdown = AceGUI:Create("Dropdown")
+    modeDropdown:SetWidth(120)
+    modeDropdown:SetList({["spells"] = "Spells", ["items"] = "Items"})
+    modeDropdown:SetValue("spells")
+    modeDropdown:SetLabel("Type")
+    modeDropdown:SetCallback("OnValueChanged", function(widget, event, key)
+        pickerMode = key
+        applyFilters()
+    end)
+
+    -- Search box
+    local searchBox = AceGUI:Create("EditBox")
+    searchBox:SetWidth(250)
+    searchBox:SetLabel("Search")
+    searchBox:DisableButton(true)
+    searchBox:SetCallback("OnTextChanged", function(widget, event, text)
+        searchQuery = text or ""
+        applyFilters()
+    end)
+
+    -- Highest rank toggle
+    local rankToggle = AceGUI:Create("CheckBox")
+    rankToggle:SetFullWidth(true)
+    rankToggle:SetLabel("Only show highest rank")
+    rankToggle:SetValue(true)
+    rankToggle:SetCallback("OnValueChanged", function(widget, event, value)
+        showHighestRankOnly = value
+        applyFilters()
+    end)
+
+    -- Empty state label
+    emptyLabel = AceGUI:Create("Label")
+    emptyLabel:SetFullWidth(true)
+    emptyLabel:SetText("")
+    emptyLabel.frame:Hide()
+
     local saveButton = AceGUI:Create("Button")
     saveButton:SetDisabled(true)
-
     local selectedSpell
 
-    local ScrollingTable = LibStub("ScrollingTable");
+    -- Scrolling table
+    local ScrollingTable = LibStub("ScrollingTable")
     local cols = {
         {
             ["name"] = "",
-            ["width"] = 240,
+            ["width"] = 280,
             ["align"] = "LEFT",
-            ["color"] = { 
-                ["r"] = 1, 
-                ["g"] = 1, 
-                ["b"] = 1.0, 
-                ["a"] = 1.0 
-            },
+            ["color"] = { ["r"] = 1, ["g"] = 1, ["b"] = 1.0, ["a"] = 1.0 },
         },
         {
             ["name"] = "ID",
             ["width"] = 0,
             ["align"] = "LEFT",
-            ["color"] = { 
-                ["r"] = 1, 
-                ["g"] = 1, 
-                ["b"] = 1.0, 
-                ["a"] = 1.0 
-            },
-        }
+        },
+        {
+            ["name"] = "Info",
+            ["width"] = 80,
+            ["align"] = "RIGHT",
+            ["color"] = { ["r"] = 0.7, ["g"] = 0.7, ["b"] = 0.7, ["a"] = 1.0 },
+        },
     }
-    local spTable = ScrollingTable:CreateST(cols, 7, 35, nil, spellPickerFrame.frame)
-    spTable.frame:SetPoint("TOPLEFT", spellPickerFrame.frame, "TOPLEFT", 15, -50)
-    local data = spelltable
-    spTable:SetData(data, true)
+    spTable = ScrollingTable:CreateST(cols, 10, 32, nil, spellPickerFrame.frame)
+    spTable.frame:SetPoint("TOPLEFT", spellPickerFrame.frame, "TOPLEFT", 15, -190)
     spTable:EnableSelection(true)
+    applyFilters()
 
     spTable:RegisterEvents({
-        ["OnClick"] = function (rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)
-            --print("spell selected: " .. data[realrow][2])
-            local name, rank, icon, powerCost, isFunnel, powerType, castingTime, minRange, maxRange = GetSpellInfo(data[realrow][2])
-            selectedSpell = data[realrow][2]
-            saveButton:SetDisabled(false)
-
+        ["OnClick"] = function(rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)
+            if realrow and data[realrow] then
+                selectedSpell = data[realrow][2]
+                saveButton:SetDisabled(false)
+            end
         end,
-        ["OnEnter"] = function (rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)
-            --print("on enter spell selected: " .. data[realrow][2])
-            --if data[realrow] ~= nil and data[realrow][2] ~= nil then
-            --    GameTooltip:SetOwner(rowFrame, "ANCHOR_CURSOR")
-            --    GameTooltip:SetHyperlink("spell:" .. data[realrow][2])
-            --    GameTooltip:Show()
-            --end
+        ["OnEnter"] = function(rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)
+            if realrow and data[realrow] then
+                local id = data[realrow][2]
+                GameTooltip:SetOwner(cellFrame, "ANCHOR_RIGHT")
+                if type(id) == "string" and string.sub(id, 1, 2) == "i:" then
+                    local itemID = tonumber(string.sub(id, 3))
+                    GameTooltip:SetHyperlink("item:" .. itemID)
+                else
+                    GameTooltip:SetSpellByID(tonumber(id))
+                end
+                GameTooltip:Show()
+            end
         end,
-        ["OnLeave"] = function (rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)
-            --print("on leave spell selected: " .. data[realrow][2])
-            --GameTooltip:Hide()
+        ["OnLeave"] = function(rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)
+            GameTooltip:Hide()
         end,
-    });
+    })
 
-    --pcall(spellPickerFrame:AddChild(table))
-
+    -- Buttons
     local buttonsContainer = AceGUI:Create("SimpleGroup")
     buttonsContainer:SetFullWidth(true)
     buttonsContainer:SetHeight(50)
     buttonsContainer:SetLayout("Flow")
 
     saveButton:SetText("Save")
-    saveButton:SetWidth(75) 
-    saveButton:SetCallback("OnClick", function(widget) 
+    saveButton:SetWidth(75)
+    saveButton:SetCallback("OnClick", function(widget)
         DPSGenie:addSpellToRota(rotaTitle, group, selectedSpell)
         if spellPickerFrame then
-            spellPickerFrame:Fire("OnClose")
+            pcall(function() spellPickerFrame:Fire("OnClose") end)
         end
-    end)                 
+    end)
     buttonsContainer:AddChild(saveButton)
 
     local cancelButton = AceGUI:Create("Button")
     cancelButton:SetText("Cancel")
-    cancelButton:SetWidth(75)       
-    cancelButton:SetCallback("OnClick", function(widget) 
+    cancelButton:SetWidth(75)
+    cancelButton:SetCallback("OnClick", function(widget)
         if spellPickerFrame then
-            spellPickerFrame:Fire("OnClose")
+            pcall(function() spellPickerFrame:Fire("OnClose") end)
         end
-    end)           
+    end)
     buttonsContainer:AddChild(cancelButton)
 
     spellPickerFrame:AddChild(addSpellLabel)
+    spellPickerFrame:AddChild(modeDropdown)
+    spellPickerFrame:AddChild(searchBox)
+    spellPickerFrame:AddChild(rankToggle)
+    spellPickerFrame:AddChild(emptyLabel)
 
     buttonsContainer.frame:SetPoint("BOTTOMLEFT", spellPickerFrame.frame, "BOTTOMLEFT", 15, 15)
-    buttonsContainer.frame:SetFrameStrata("DIALOG");
-    buttonsContainer.frame:Show();
-    
+    buttonsContainer.frame:SetFrameStrata("DIALOG")
+    buttonsContainer.frame:Show()
+
     spellPickerFrame:SetCallback("OnClose", function(widget)
-        AceGUI:Release(widget);
-
+        AceGUI:Release(widget)
         if spTable then
-            spTable:Hide();
-            spTable.frame = nil;
-            spTable = nil;
+            spTable:Hide()
+            spTable.frame = nil
+            spTable = nil
         end
-
-        buttonsContainer.frame:Hide();
+        buttonsContainer.frame:Hide()
     end)
     spellPickerFrame:Show()
 end
@@ -541,6 +848,15 @@ function DPSGenie:addSpellToRota(rota, group, spell)
 end
 
 function DPSGenie:addConditionToSpell(rotaTitle, group, rotaSpell, condition)
+    if not customRotas[rotaTitle] or not customRotas[rotaTitle].spells
+        or not customRotas[rotaTitle].spells[group]
+        or not customRotas[rotaTitle].spells[group][rotaSpell] then
+        DPSGenie:Print("Error: Cannot add condition — rotation/spell no longer exists.")
+        return
+    end
+    if not customRotas[rotaTitle].spells[group][rotaSpell]["conditions"] then
+        customRotas[rotaTitle].spells[group][rotaSpell]["conditions"] = {}
+    end
     table.insert(customRotas[rotaTitle].spells[group][rotaSpell]["conditions"], condition)
     DPSGenie:SaveCustomRota(rotaTitle, customRotas[rotaTitle])
     DPSGenie:DrawRotaGroup(rotaTree, rotaTitle, "custom", group)
@@ -559,7 +875,7 @@ function DPSGenie:removeConditionFromSpell(rota, group, spell, index)
 end
 
 function DPSGenie:swapSpells(rota, group, index1, index2)
-    tbl = customRotas[rota]
+    local tbl = customRotas[rota]
     if tbl and tbl.spells and tbl.spells[group] and tbl.spells[group][index1] and tbl.spells[group][index2] then
         --print("would swap")
         tbl.spells[group][index1], tbl.spells[group][index2] = tbl.spells[group][index2], tbl.spells[group][index1]
@@ -743,9 +1059,22 @@ function DPSGenie:DrawImportWindow(container)
     local importRotaButton = AceGUI:Create("Button")
     importRotaButton:SetText("Import")
     importRotaButton:SetWidth(75) 
-    importRotaButton:SetCallback("OnClick", function(widget) 
-        local rotaData = stringToTable(DPSGenie:decompress(rotaText))
-        --DPSGenie:Print(DPSGenie:decompress(rotaText))
+    importRotaButton:SetCallback("OnClick", function(widget)
+        if not rotaText or rotaText == "" then
+            DPSGenie:Print("Error: Please paste a rota string first.")
+            return
+        end
+        if string.len(rotaText) > 102400 then
+            DPSGenie:Print("Error: Import string too large (max 100KB).")
+            return
+        end
+        local ok, rotaData = pcall(function()
+            return stringToTable(DPSGenie:decompress(rotaText))
+        end)
+        if not ok or not rotaData then
+            DPSGenie:Print("Error: Invalid rota string.")
+            return
+        end
         local importrotaname = DPSGenie:ImportRotaToCustom(rotaData)
         rotaTree:SetTree(DPSGenie:GetRotaList())
         rotaTree:SelectByValue("customRotations\001"..importrotaname)
@@ -764,14 +1093,13 @@ function DPSGenie:CreateRotaBuilder()
     Rotaframe:SetLayout("Fill")
     Rotaframe.frame:SetFrameStrata("HIGH")
 
-    Rotaframe:SetCallback("OnClose", function(widget) 
+    Rotaframe:SetCallback("OnClose", function(widget)
         if spellPickerFrame then
-            spellPickerFrame:Fire("OnClose")
+            pcall(function() spellPickerFrame:Fire("OnClose") end)
         end
         if conditionPickerFrame then
-            conditionPickerFrame:Fire("OnClose")
+            pcall(function() conditionPickerFrame:Fire("OnClose") end)
         end
-        --AceGUI:Release(widget) 
     end)
 
     rotaTree = AceGUI:Create("TreeGroup")
@@ -795,7 +1123,7 @@ function DPSGenie:CreateRotaBuilder()
             -- Not conerned with ever clicking on Active/Inactive itself
             local rotaTitle = {strsplit("\001", selected)}
             tremove(rotaTitle, 1)
-            rotaTitle = strjoin("?", unpack(rotaTitle))
+            rotaTitle = strjoin("\001", unpack(rotaTitle))
 
             if rotaTitle ~= "" then
                 DPSGenie:DrawRotaGroup(container, rotaTitle, selected, 1)
@@ -876,9 +1204,6 @@ function DPSGenie:DrawNewRotaWindow(container)
 
 end
 
-function DPSGenie:DrawImportRotaWindow(container)
-end
-
 local customButtons = {}
 
 
@@ -889,10 +1214,13 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
         tabindex = 1
     end
 
-    --remove custom buttons as they were not added as childs
+    --release custom buttons to prevent memory leaks
     for btnCnt = 1, #customButtons do
-        customButtons[btnCnt].frame:Hide();
+        customButtons[btnCnt].frame:SetNormalTexture(nil)
+        customButtons[btnCnt].frame:Hide()
+        AceGUI:Release(customButtons[btnCnt])
     end
+    customButtons = {}
 
     local readOnly
     local rotaData
@@ -980,7 +1308,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
         local compressed = DPSGenie:compress(rotaData)
         --DPSGenie:Print(compressed)      
         --Internal_CopyToClipboard(compressed)
-        DPSGenieExportString = compressed
+        DPSGenie.exportString = compressed
         local dialog = StaticPopup_Show("COPY_ROTA_STRING")
     end)  
     if not readOnly then               
@@ -1015,7 +1343,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
 
     titleEditBox:SetCallback("OnTextChanged", function(self) 
         local newname = self:GetText():match( "^%s*(.-)%s*$" )
-        if DPSGenie:GetCustomRota(newname) and newname ~= rotaData.name and string.len(newname) < 1 then 
+        if string.len(newname) < 1 or (DPSGenie:GetCustomRota(newname) and newname ~= rotaData.name) then
             self.editbox:SetTextColor(1,0,0)
             titleSaveButton:SetDisabled(true)
         else
@@ -1094,8 +1422,11 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
 
 
             for btnCnt = 1, #customButtons do
-                customButtons[btnCnt].frame:Hide();
+                customButtons[btnCnt].frame:SetNormalTexture(nil)
+                customButtons[btnCnt].frame:Hide()
+                AceGUI:Release(customButtons[btnCnt])
             end
+            customButtons = {}
 
              --containing frame for all the spells
             local labelRotaHeader = AceGUI:Create("SimpleGroup")
@@ -1106,7 +1437,20 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
             if rotaData.spells[group] then
                 for ks, vs in ipairs(rotaData.spells[group]) do
 
-                    local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vs.spellId)
+                    local name, icon
+                    local actionPrefix = string.sub(vs.spellId, 1, 1)
+                    if actionPrefix == "i" then
+                        local itemId = tonumber(string.match(vs.spellId, "%d+"))
+                        local itemName, _, _, _, _, _, _, _, _, itemIcon = GetItemInfo(itemId)
+                        name = itemName
+                        icon = itemIcon
+                    elseif actionPrefix == "l" then
+                        name = "Lua Script"
+                    else
+                        name, _, icon = GetSpellInfo(vs.spellId)
+                    end
+                    if not name then name = "Unknown" end
+                    if not icon then icon = "Interface\\Icons\\INV_Misc_QuestionMark" end
 
                     local rotaPartHolder = AceGUI:Create("InlineGroup")
                     rotaPartHolder:SetTitle(ks .. ". " .. name)
@@ -1141,26 +1485,63 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
                             currentConditionPartComparer:SetText("\124cFF00FF00Comparer:\124r " .. vc.comparer)
                             conditionPartHolder:AddChild(currentConditionPartComparer)
 
+                            -- Show search/value info based on subject type
+                            if vc.search then
+                                local currentConditionPartSearch = AceGUI:Create("Label")
+                                currentConditionPartSearch:SetFullWidth(true)
+
+                                if vc.subject == "Buffs" or vc.subject == "Debuffs" then
+                                    local spellName = GetSpellInfo(vc.search)
+                                    currentConditionPartSearch:SetText("\124cFF00FF00" .. vc.subject .. ":\124r " .. (spellName or "Unknown") .. " (ID: " .. vc.search .. ")")
+                                elseif vc.subject == "Spell Cooldown" or vc.subject == "Spell Charges" or vc.subject == "Spell Known" then
+                                    local spellName = GetSpellInfo(vc.search)
+                                    currentConditionPartSearch:SetText("\124cFF00FF00Spell:\124r " .. (spellName or "Unknown") .. " (ID: " .. vc.search .. ")")
+                                elseif vc.subject == "Item Cooldown" or vc.subject == "Item Equipped" then
+                                    local itemID = vc.search
+                                    if type(itemID) == "string" and string.sub(itemID, 1, 2) == "i:" then
+                                        itemID = tonumber(string.sub(itemID, 3))
+                                    end
+                                    local itemName = select(1, GetItemInfo(itemID or 0)) or "Unknown"
+                                    currentConditionPartSearch:SetText("\124cFF00FF00Item:\124r " .. itemName .. " (ID: " .. tostring(vc.search) .. ")")
+                                elseif vc.subject == "Stance" then
+                                    local formName = "No Stance/Form"
+                                    local formIdx = tonumber(vc.search) or 0
+                                    if formIdx > 0 then
+                                        local _, name = GetShapeshiftFormInfo(formIdx)
+                                        formName = name or ("Form " .. formIdx)
+                                    end
+                                    currentConditionPartSearch:SetText("\124cFF00FF00Form:\124r " .. formName .. " (" .. formIdx .. ")")
+                                elseif vc.subject == "Threat" then
+                                    currentConditionPartSearch:SetText("\124cFF00FF00Percentage:\124r " .. vc.search .. "%")
+                                else
+                                    currentConditionPartSearch:SetText("\124cFF00FF00Value:\124r " .. vc.search)
+                                end
+                                conditionPartHolder:AddChild(currentConditionPartSearch)
+                            end
+
                             if vc.compare_value then
                                 local currentConditionPartCompareValue = AceGUI:Create("Label")
                                 currentConditionPartCompareValue:SetFullWidth(true)
-                                currentConditionPartCompareValue:SetText("\124cFF00FF00Compare Value:\124r " .. vc.compare_value)
+
+                                if vc.subject == "Buffs" or vc.subject == "Debuffs" then
+                                    if vc.comparer == "time left more than" or vc.comparer == "time left less than" then
+                                        currentConditionPartCompareValue:SetText("\124cFF00FF00Time:\124r " .. vc.compare_value .. "s")
+                                    else
+                                        currentConditionPartCompareValue:SetText("\124cFF00FF00Stacks:\124r " .. vc.compare_value)
+                                    end
+                                elseif vc.subject == "Spell Cooldown" then
+                                    currentConditionPartCompareValue:SetText("\124cFF00FF00Threshold:\124r " .. vc.compare_value .. "s")
+                                elseif vc.subject == "Spell Charges" then
+                                    currentConditionPartCompareValue:SetText("\124cFF00FF00Charges:\124r " .. vc.compare_value)
+                                else
+                                    currentConditionPartCompareValue:SetText("\124cFF00FF00Compare Value:\124r " .. vc.compare_value)
+                                end
                                 conditionPartHolder:AddChild(currentConditionPartCompareValue)
                             end
 
-                            local currentConditionPartSearch = AceGUI:Create("Label")
-                            currentConditionPartSearch:SetFullWidth(true)
-                            if vc.subject == "Buffs" then
-                                local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(vc.search)
-                                currentConditionPartSearch:SetText("\124cFF00FF00Search:\124r " .. name .. " (ID: " .. vc.search .. ")")
-                            else
-                                currentConditionPartSearch:SetText("\124cFF00FF00Search:\124r " .. vc.search)
-                            end
-                            conditionPartHolder:AddChild(currentConditionPartSearch)
-
 
                             local deleteConditionButton = AceGUI:Create("Button")
-                            deleteConditionButton:SetText("Delete Spell")
+                            deleteConditionButton:SetText("Delete Condition")
                             deleteConditionButton:SetWidth(20)  
                             deleteConditionButton:SetHeight(20)          
                             deleteConditionButton:SetCallback("OnClick", function(widget) 
@@ -1196,9 +1577,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
                     local addConditionButton = AceGUI:Create("Button")
                     addConditionButton:SetText("Add Condition")
                     addConditionButton:SetWidth(150)      
-                    addConditionButton:SetCallback("OnClick", function(widget) 
+                    addConditionButton:SetCallback("OnClick", function(widget)
                         if spellPickerFrame then
-                            spellPickerFrame:Fire("OnClose")
+                            pcall(function() spellPickerFrame:Fire("OnClose") end)
                         end
                         DPSGenie:showConditionPicker(rotaTitle, group, ks)
                     end)        
@@ -1253,7 +1634,7 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
                     moveSpellDownButton:SetHeight(20)           
                     moveSpellDownButton:SetCallback("OnClick", function(widget) 
                         --print("movedown " .. rotaTitle .. " io: " .. ks .. " in: " .. ks+1)
-                        DPSGenie:swapSpells(rotaTitle, group, ks, ks+1, group)
+                        DPSGenie:swapSpells(rotaTitle, group, ks, ks+1)
                     end)   
                     moveSpellDownButton.frame:ClearAllPoints()
                     moveSpellDownButton.frame:SetParent(rotaPartHolder.frame)
@@ -1280,9 +1661,9 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
             local addSpellButton = AceGUI:Create("Button")
             addSpellButton:SetText("Add Spell")
             addSpellButton:SetWidth(150)              
-            addSpellButton:SetCallback("OnClick", function(widget) 
+            addSpellButton:SetCallback("OnClick", function(widget)
                 if conditionPickerFrame then
-                    conditionPickerFrame:Fire("OnClose")
+                    pcall(function() conditionPickerFrame:Fire("OnClose") end)
                 end
                 DPSGenie:showSpellPicker(rotaTitle, group)
             end)   

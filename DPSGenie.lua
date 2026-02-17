@@ -123,10 +123,4 @@ function DPSGenie:LoadSettingFromProfile(setting)
     end
 end
 
-function DPSGenie:OnEnable()
-    
-end
-
-function DPSGenie:OnDisable()
-    
-end
+-- OnEnable and OnDisable are defined in Core.lua (single lifecycle owner)

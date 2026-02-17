@@ -7,10 +7,7 @@ local defaultSettings = {
     global = { customRotas = {} }
 }
 
-function DPSGenie:OnInitialize()
-    self.db = LibStub("AceDB-3.0"):New("DPSGenieRotaDB", defaultSettings)
-    --DPSGenie:SetTestCustomRotas()
-end
+-- OnInitialize is defined in DPSGenie.lua (single lifecycle owner)
 
 function DPSGenie:SetTestCustomRotas()
     self.db.global.customRotas =
@@ -89,7 +86,7 @@ function DPSGenie:GetCustomRotas()
 end
 
 function DPSGenie:GetCustomRota(name)
-    return self.db.global.customRotas[name] or false
+    return self.db.global.customRotas[name]
 end
 
 function DPSGenie:SaveCustomRota(rota, data)
