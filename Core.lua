@@ -508,6 +508,8 @@ function DPSGenie:runRotaTable()
         for sindex, svalue in pairs(activeRota.spells) do
             currentIndex = sindex
             local success = false
+            local fallbackSpell = nil
+            local fallbackIconModifiers = nil
             for index, value in ipairs(activeRota.spells[sindex]) do
                 local unit = "target"
 
@@ -520,6 +522,7 @@ function DPSGenie:runRotaTable()
                 --override, for special spells? rankless
 
                 local basechecks = false
+                local predictionCandidate = false
                 local iconModifiers = {}
 
                 local action = value["spellId"]
@@ -556,6 +559,8 @@ function DPSGenie:runRotaTable()
 
                         if itemReady and inRange ~= 0 then
                             basechecks = true
+                        elseif not itemReady and inRange ~= 0 and not fallbackSpell then
+                            predictionCandidate = true
                         end
                     else
                         DPSGenie:addToDebugTable("Item not in inventory or equipped")
@@ -632,6 +637,13 @@ function DPSGenie:runRotaTable()
                                     basechecks = true
                                 end
                             end
+
+                            -- Prediction candidate: passes all checks except cooldown
+                            if not basechecks and usable and (spellInRange ~= 0 or DPSGenie:LoadSettingFromProfile("showOutOfRange")) and not fallbackSpell then
+                                if (UnitCanAttack("player", unit) and IsHarmfulSpell(name)) or IsHelpfulSpell(name) then
+                                    predictionCandidate = true
+                                end
+                            end
                         end
                     end
                 end
@@ -674,11 +686,39 @@ function DPSGenie:runRotaTable()
                         DPSGenie:addToDebugTable("|cFFFF0000" .. actionName .. " failed basechecks!|r")
                     end
 
-                    if success and not DPSGenie:debugEnabled() then          
+                    if success and not DPSGenie:debugEnabled() then
                         break
                     else
                         DPSGenie:SetSuggestSpell(sindex, false, nil)
                     end
+                end
+
+                -- Prediction: evaluate conditions for spells/items on cooldown
+                if predictionCandidate and not fallbackSpell then
+                    if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) then
+                        local conditionsPassed = 0
+                        if value["conditions"] then
+                            for cindex, condition in ipairs(value["conditions"]) do
+                                if DPSGenie:evaluateCondition(condition, cindex) then
+                                    conditionsPassed = conditionsPassed + 1
+                                end
+                            end
+                        end
+                        if (value["conditions"] and conditionsPassed == #value["conditions"]) or not value["conditions"] then
+                            fallbackSpell = action
+                            fallbackIconModifiers = iconModifiers
+                        end
+                    end
+                end
+            end
+
+            -- After evaluating all spells: show prediction fallback or clear button
+            if not success then
+                if DPSGenie:LoadSettingFromProfile("showPrediction") and fallbackSpell then
+                    fallbackIconModifiers['vertexColor'] = {0.5, 0.5, 0.5, 0.7}
+                    DPSGenie:SetSuggestSpell(currentIndex, fallbackSpell, fallbackIconModifiers)
+                else
+                    DPSGenie:SetSuggestSpell(currentIndex, false, nil)
                 end
             end
         end

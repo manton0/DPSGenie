@@ -1,19 +1,17 @@
 local addonName, ns = ...
 DPSGenie = LibStub("AceAddon-3.0"):NewAddon("DPSGenie", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
 
-local optionsFrame
-
 local options = {
     name = "DPSGenie",
     handler = DPSGenie,
     type = 'group',
     args = {
-        config = {
+        settings = {
             guiHidden = true,
             type = "execute",
-            name = "Show Addon Config",
+            name = "Open Settings",
             func = function()
-                InterfaceOptionsFrame_OpenToCategory(optionsFrame)
+                DPSGenie:showRotaBuilder("settings")
             end
         },
         capture = {
@@ -40,54 +38,10 @@ local options = {
                 DPSGenie:toggleDebug()
             end
         },
-        showOutOfRange = {
-            name = "show Out Of Range",
-            desc = "Shows Spells if out of range?",
-            type = "toggle",
-            set = function(info, val) DPSGenie:SaveSettingToProfile("showOutOfRange", val) end,
-            get = function(info) return DPSGenie:LoadSettingFromProfile("showOutOfRange") end
-        },
-        showEmpty = {
-            name = "show Empty Button",
-            desc = "Shows Spellbutton if has no spell?",
-            type = "toggle",
-            set = function(info, val) DPSGenie:SaveSettingToProfile("showEmpty", val) end,
-            get = function(info) return DPSGenie:LoadSettingFromProfile("showEmpty") end
-        },
-        showSpellFlash = {
-            name = "show SpellFlash",
-            desc = "Shows flash on actionbar?",
-            type = "toggle",
-            set = function(info, val) DPSGenie:SaveSettingToProfile("showSpellFlash", val) end,
-            get = function(info) return DPSGenie:LoadSettingFromProfile("showSpellFlash") end
-        },
-        showKeybind = {
-            name = "show Keybind",
-            desc = "Shows keybind on Spellbutton?",
-            type = "toggle",
-            set = function(info, val) DPSGenie:SaveSettingToProfile("showKeybind", val) end,
-            get = function(info) return DPSGenie:LoadSettingFromProfile("showKeybind") end
-        },
-        onlyInCombat = {
-            name = "only show in Combat",
-            desc = "Only shows spell buttons while in combat?",
-            type = "toggle",
-            set = function(info, val) DPSGenie:SaveSettingToProfile("onlyInCombat", val) end,
-            get = function(info) return DPSGenie:LoadSettingFromProfile("onlyInCombat") end
-        },
-        onlyWithTarget = {
-            name = "only show with Target",
-            desc = "Only shows spell buttons when you have a target?",
-            type = "toggle",
-            set = function(info, val) DPSGenie:SaveSettingToProfile("onlyWithTarget", val) end,
-            get = function(info) return DPSGenie:LoadSettingFromProfile("onlyWithTarget") end
-        },
     },
 }
 
-
 LibStub("AceConfig-3.0"):RegisterOptionsTable("DPSGenie", options, {"dps", "dpsgenie"})
-optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("DPSGenie", "DPSGenie")
 
 local defaultSettings = {
     global = { customRotas = {} },
@@ -96,6 +50,7 @@ local defaultSettings = {
         showEmpty = false,
         showSpellFlash = true,
         showKeybind = true,
+        showPrediction = false,
         spellFlashType = "default",
         onlyInCombat = false,
         onlyWithTarget = false,

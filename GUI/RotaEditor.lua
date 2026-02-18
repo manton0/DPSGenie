@@ -911,15 +911,18 @@ function DPSGenie:ConvertOldProfileToSubProfile(rota)
 end
 
 
-function DPSGenie:showRotaBuilder()
+function DPSGenie:showRotaBuilder(selectPage)
     if not Rotaframe then
         DPSGenie:CreateRotaBuilder()
     else
-        if Rotaframe:IsVisible() then
+        if Rotaframe:IsVisible() and not selectPage then
             Rotaframe:Hide()
         else
             Rotaframe:Show()
         end
+    end
+    if selectPage and rotaTree then
+        rotaTree:SelectByPath(selectPage)
     end
 end
 
@@ -928,12 +931,17 @@ function DPSGenie:GetRotaList()
     defaultRotas = DPSGenie:GetDefaultRotas()
     customRotas = DPSGenie:GetCustomRotas()
 
-	local tree = 
-	{ 
+	local tree =
+	{
         {
 			value = "welcome",
 			text = "Welcome",
             icon = "Interface\\Icons\\inv_misc_book_06",
+		},
+        {
+			value = "settings",
+			text = "Settings",
+            icon = "Interface\\Icons\\Trade_Engineering",
 		},
 		{
 			value = "newRotation",
@@ -961,7 +969,7 @@ function DPSGenie:GetRotaList()
 
     for k, v in pairs(defaultRotas) do
         local entry = {value = v.name, text = v.name, icon = v.icon}
-        table.insert(tree[4].children, entry)
+        table.insert(tree[5].children, entry)
     end 
 
     if customRotas then
@@ -971,7 +979,7 @@ function DPSGenie:GetRotaList()
             --    activeName = "\124cFF00FF00" .. v.name .. "\124r"
             --end
             local entry = {value = v.name, text = activeName, icon = v.icon}
-            table.insert(tree[5].children, entry)
+            table.insert(tree[6].children, entry)
         end 
     end
 
@@ -1030,6 +1038,55 @@ Ready to unleash your full potential? Let the magic begin!]])
     groupScrollContainer:SetCallback("OnRelease", function(widget) DPSGenieImage.frame:Hide() DPSGenieWelcomeText.frame:Hide() end)
     container:AddChild(groupScrollContainer)
 
+end
+
+
+function DPSGenie:DrawSettingsPanel(container)
+    local groupScrollContainer = AceGUI:Create("SimpleGroup")
+    groupScrollContainer:SetFullWidth(true)
+    groupScrollContainer:SetFullHeight(true)
+    groupScrollContainer:SetLayout("List")
+
+    local header = AceGUI:Create("Heading")
+    header:SetFullWidth(true)
+    header:SetText("Settings")
+    groupScrollContainer:AddChild(header)
+
+    -- Helper to create a setting checkbox
+    local function addCheckbox(settingKey, label, description)
+        local cb = AceGUI:Create("CheckBox")
+        cb:SetFullWidth(true)
+        cb:SetLabel(label)
+        cb:SetDescription(description)
+        cb:SetValue(DPSGenie:LoadSettingFromProfile(settingKey) and true or false)
+        cb:SetCallback("OnValueChanged", function(widget, event, val)
+            DPSGenie:SaveSettingToProfile(settingKey, val)
+        end)
+        groupScrollContainer:AddChild(cb)
+    end
+
+    -- Display settings
+    local displayHeader = AceGUI:Create("Heading")
+    displayHeader:SetFullWidth(true)
+    displayHeader:SetText("Display")
+    groupScrollContainer:AddChild(displayHeader)
+
+    addCheckbox("showOutOfRange", "Show Out Of Range", "Show spells even when the target is out of range")
+    addCheckbox("showEmpty", "Show Empty Button", "Show the spell button even when no spell is suggested")
+    addCheckbox("showSpellFlash", "Show SpellFlash", "Highlight the matching action bar button with a pulse animation")
+    addCheckbox("showKeybind", "Show Keybind", "Display the keybind text on the spell button")
+    addCheckbox("showPrediction", "Show Prediction", "When no spell is ready, show the next spell that would be available (dimmed with cooldown)")
+
+    -- Behavior settings
+    local behaviorHeader = AceGUI:Create("Heading")
+    behaviorHeader:SetFullWidth(true)
+    behaviorHeader:SetText("Behavior")
+    groupScrollContainer:AddChild(behaviorHeader)
+
+    addCheckbox("onlyInCombat", "Only Show in Combat", "Only show spell buttons while you are in combat")
+    addCheckbox("onlyWithTarget", "Only Show with Target", "Only show spell buttons when you have a target selected")
+
+    container:AddChild(groupScrollContainer)
 end
 
 
@@ -1118,6 +1175,8 @@ function DPSGenie:CreateRotaBuilder()
             DPSGenie:DrawImportWindow(container)
         elseif selected == "welcome" then
             DPSGenie:DrawWelcomeWindow(container)
+        elseif selected == "settings" then
+            DPSGenie:DrawSettingsPanel(container)
         else
             -- Finding out the selected path to get the rotaTitle
             -- Not conerned with ever clicking on Active/Inactive itself
