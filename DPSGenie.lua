@@ -61,7 +61,15 @@ function DPSGenie:OnInitialize()
     --self.db = LibStub("AceDB-3.0"):New("DPSGenieDB", defaultSettings)
     self.db = LibStub("AceDB-3.0"):New("DPSGenieRotaDB", defaultSettings)
 
-    --TODO: built spell list here
+    -- Register with the shared Genie minimap button
+    local GenieMinimap = LibStub("GenieMinimap-1.0", true)
+    if GenieMinimap then
+        GenieMinimap:Register("DPSGenie", {
+            { label = "Rotation Editor", onClick = function() DPSGenie:showRotaBuilder() end },
+            { label = "Spell Capture",   onClick = function() DPSGenie:showCapture() end },
+            { label = "Settings",        onClick = function() DPSGenie:showRotaBuilder("settings") end },
+        })
+    end
 end
 
 function DPSGenie:SaveSettingToProfile(setting, value)

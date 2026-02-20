@@ -24,10 +24,9 @@ A rotation helper addon for the **Ascension** private server (WoW 3.3.5). DPSGen
 
 ## Installation
 
-1. Download the newest version under **Code > Download ZIP** [Download](https://github.com/manton0/DPSGenie/archive/refs/heads/main.zip)
-2. Extract the ZIP content into your `Interface/AddOns` folder
-3. Make sure the folder is called `DPSGenie`
-4. Start your client and enjoy
+1. Download the latest release from the [Releases page](https://github.com/manton0/DPSGenie/releases/latest)
+2. Extract the ZIP into your `Interface/AddOns` folder
+3. Start your client and enjoy
 
 ## Usage
 
