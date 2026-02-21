@@ -30,7 +30,11 @@ A rotation helper addon for the **Ascension** private server (WoW 3.3.5). DPSGen
 
 ## Usage
 
-- Use the **Rota** button on top of your screen to open the Rotation Editor
+- **Minimap Button** — Click the Genie minimap button to access the Rotation Editor, Spell Capture, and Settings from a dropdown menu. Drag the button around the minimap to reposition it.
+- `/dps rota` — Open the Rotation Editor directly
+- `/dps settings` — Open the Settings panel
+- `/dps capture` — Open the Spell Capture window
+- `/dps debug` — Toggle the Debug overlay
 - Create a new rotation or pick a default one and click **Use** to activate it
 - The suggestion buttons will appear during combat (configurable in settings)
 - Use **Copy** to duplicate a default rotation and customize it

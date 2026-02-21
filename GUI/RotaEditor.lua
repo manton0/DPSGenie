@@ -917,13 +917,36 @@ function DPSGenie:showRotaBuilder(selectPage)
     else
         if Rotaframe:IsVisible() and not selectPage then
             Rotaframe:Hide()
+            return
         else
             Rotaframe:Show()
         end
     end
-    if selectPage and rotaTree then
-        rotaTree:SelectByPath(selectPage)
+    if rotaTree then
+        if selectPage then
+            rotaTree:SelectByPath(selectPage)
+        else
+            DPSGenie:SelectActiveRotaInTree()
+        end
     end
+end
+
+function DPSGenie:SelectActiveRotaInTree()
+    local rota = DPSGenie:LoadSettingFromProfile("activeRota")
+    if rota and rota.name then
+        local customs = DPSGenie:GetCustomRotas()
+        if customs and customs[rota.name] then
+            rotaTree:SelectByPath("customRotations", rota.name)
+            return
+        end
+        local defaults = DPSGenie:GetDefaultRotas()
+        if defaults and defaults[rota.name] then
+            rotaTree:SelectByPath("defaultRotations", rota.name)
+            return
+        end
+    end
+    -- No active rota found — show new rotation page
+    rotaTree:SelectByPath("newRotation")
 end
 
 function DPSGenie:GetRotaList()
@@ -942,6 +965,11 @@ function DPSGenie:GetRotaList()
 			value = "settings",
 			text = "Settings",
             icon = "Interface\\Icons\\Trade_Engineering",
+		},
+        {
+			value = "debug",
+			text = "Debug",
+            icon = "Interface\\Icons\\INV_Misc_Gear_01",
 		},
 		{
 			value = "newRotation",
@@ -969,8 +997,8 @@ function DPSGenie:GetRotaList()
 
     for k, v in pairs(defaultRotas) do
         local entry = {value = v.name, text = v.name, icon = v.icon}
-        table.insert(tree[5].children, entry)
-    end 
+        table.insert(tree[6].children, entry)
+    end
 
     if customRotas then
         for k, v in pairs(customRotas) do
@@ -979,7 +1007,7 @@ function DPSGenie:GetRotaList()
             --    activeName = "\124cFF00FF00" .. v.name .. "\124r"
             --end
             local entry = {value = v.name, text = activeName, icon = v.icon}
-            table.insert(tree[6].children, entry)
+            table.insert(tree[7].children, entry)
         end 
     end
 
@@ -1090,6 +1118,110 @@ function DPSGenie:DrawSettingsPanel(container)
 end
 
 
+function DPSGenie:DrawDebugPanel(container)
+    local groupScrollContainer = AceGUI:Create("SimpleGroup")
+    groupScrollContainer:SetFullWidth(true)
+    groupScrollContainer:SetFullHeight(true)
+    groupScrollContainer:SetLayout("List")
+
+    local header = AceGUI:Create("Heading")
+    header:SetFullWidth(true)
+    header:SetText("Debug Tools")
+    groupScrollContainer:AddChild(header)
+
+    -- Helper to create a debug action button
+    local function addButton(label, description, onClick)
+        local btn = AceGUI:Create("Button")
+        btn:SetFullWidth(true)
+        btn:SetText(label)
+        btn:SetCallback("OnClick", onClick)
+        groupScrollContainer:AddChild(btn)
+
+        if description then
+            local desc = AceGUI:Create("Label")
+            desc:SetFullWidth(true)
+            desc:SetText("|cFF999999" .. description .. "|r")
+            groupScrollContainer:AddChild(desc)
+        end
+    end
+
+    -- Toggle debug side pane
+    addButton("Toggle Debug Side Pane", "Opens the debug overlay that shows real-time rotation evaluation details", function()
+        DPSGenie:toggleDebug()
+    end)
+
+    -- Test SpellFlash
+    addButton("Test SpellFlash", "Pauses the rotation engine and flashes action bar slot 1 for 5 seconds", function()
+        if DPSGenie.RotaSchedule then
+            DPSGenie:CancelTimer(DPSGenie.RotaSchedule)
+        end
+        if _G["BT4Button1"] and _G["BT4Button1"]:IsVisible() then
+            DPSGenie:ShowPulseFrame(1, _G["BT4Button1"])
+        elseif _G["ElvUI_Bar1Button1"] and _G["ElvUI_Bar1Button1"]:IsVisible() then
+            DPSGenie:ShowPulseFrame(1, _G["ElvUI_Bar1Button1"])
+        else
+            DPSGenie:ShowPulseFrame(1, _G["ActionButton1"])
+        end
+        DPSGenie:Print("SpellFlash test: pulsing action bar slot 1 for 5 seconds.")
+        DPSGenie:ScheduleTimer(function()
+            DPSGenie:HidePulseFrame(1)
+            DPSGenie.RotaSchedule = DPSGenie:ScheduleRepeatingTimer("runRotaTable", .250)
+        end, 5)
+    end)
+
+    -- Test suggest buttons
+    addButton("Test Suggest Buttons", "Pauses the rotation engine and shows 2 test spell buttons for 5 seconds", function()
+        if DPSGenie.RotaSchedule then
+            DPSGenie:CancelTimer(DPSGenie.RotaSchedule)
+        end
+        DPSGenie:SetupSpellButtons(2)
+        -- Use Fireball (133) and Frostbolt (116) as recognizable test spells
+        DPSGenie:SetSuggestSpell(1, "133", nil)
+        DPSGenie:SetSuggestSpell(2, "116", nil)
+        DPSGenie:Print("Suggest buttons test: showing 2 test buttons for 5 seconds.")
+        DPSGenie:ScheduleTimer(function()
+            DPSGenie:SetSuggestSpell(1, false, nil)
+            DPSGenie:SetSuggestSpell(2, false, nil)
+            DPSGenie.RotaSchedule = DPSGenie:ScheduleRepeatingTimer("runRotaTable", .250)
+        end, 5)
+    end)
+
+    -- Rebuild spellbook cache
+    addButton("Rebuild Spellbook Cache", "Force a rebuild of the spellbook index cache used for spell lookups", function()
+        DPSGenie:RebuildSpellBookCache()
+        DPSGenie:Print("Spellbook cache rebuilt.")
+    end)
+
+    -- Reindex action bar keybinds
+    addButton("Reindex Keybinds", "Rescan all action bar slots and refresh keybind mappings", function()
+        DPSGenie:GetSpellKeybinds()
+        DPSGenie:Print("Action bar keybinds reindexed.")
+    end)
+
+    -- Open spell capture window
+    addButton("Open Spell Capture", "Opens the aura/spell capture window for recording buff and debuff IDs", function()
+        DPSGenie:showCapture()
+    end)
+
+    -- Print active rota info
+    addButton("Print Active Rota Info", "Prints the currently active rotation name and spell count to chat", function()
+        local rota = DPSGenie:GetActiveRota()
+        if rota then
+            local groupCount = #rota.spells
+            local totalSpells = 0
+            for _, group in ipairs(rota.spells) do
+                totalSpells = totalSpells + #group
+            end
+            DPSGenie:Print("Active rota: " .. rota.name .. " (" .. groupCount .. " groups, " .. totalSpells .. " spells)")
+        else
+            DPSGenie:Print("No active rotation loaded.")
+        end
+    end)
+
+    container:AddChild(groupScrollContainer)
+end
+
+
 function DPSGenie:DrawImportWindow(container)
     local groupScrollContainer = AceGUI:Create("SimpleGroup")
     groupScrollContainer:SetFullWidth(true)
@@ -1177,6 +1309,8 @@ function DPSGenie:CreateRotaBuilder()
             DPSGenie:DrawWelcomeWindow(container)
         elseif selected == "settings" then
             DPSGenie:DrawSettingsPanel(container)
+        elseif selected == "debug" then
+            DPSGenie:DrawDebugPanel(container)
         else
             -- Finding out the selected path to get the rotaTitle
             -- Not conerned with ever clicking on Active/Inactive itself
@@ -1192,10 +1326,6 @@ function DPSGenie:CreateRotaBuilder()
 
     rotaTree:SelectByPath("defaultRotations")
     rotaTree:SelectByPath("customRotations")
-    rotaTree:SelectByPath("welcome")
-
-    --TODO: if active rota, select by name -> but, active rota dont have to be the current version in the editor...
-    --TODO: add versioning to rotas, lastedit timestamp or whatever
 end
 
 function DPSGenie:DrawNewRotaWindow(container)
