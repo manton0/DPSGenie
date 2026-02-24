@@ -340,20 +340,89 @@ DPSGenieButtonHolderFrame:SetPoint("TOP", UIParent, "TOP", 0, -10)
 DPSGenieButtonHolderFrame:SetMovable(true)
 DPSGenieButtonHolderFrame:EnableMouse(true)
 DPSGenieButtonHolderFrame:RegisterForDrag("LeftButton")
+
+local holderBackdrop = {
+    bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+    tile = true,
+    tileSize = 16,
+    edgeSize = 16,
+    insets = { left = 4, right = 4, top = 4, bottom = 4 }
+}
+
+-- Label below the frame (visible only when unlocked)
+local holderLabel = DPSGenieButtonHolderFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+holderLabel:SetPoint("TOP", DPSGenieButtonHolderFrame, "BOTTOM", 0, -2)
+holderLabel:SetText("DPSGenie Spell Suggest")
+holderLabel:SetTextColor(0.7, 0.7, 0.7)
+
+-- Lock button (parented to UIParent so it stays visible independently)
+local lockBtn = CreateFrame("Button", "DPSGenieLockButton", UIParent)
+lockBtn:SetSize(20, 20)
+lockBtn:SetPoint("LEFT", DPSGenieButtonHolderFrame, "RIGHT", 4, 0)
+
+local lockTex = lockBtn:CreateTexture(nil, "ARTWORK")
+lockTex:SetAllPoints()
+lockTex:SetTexture("Interface\\LFGFrame\\UI-LFG-ICON-LOCK")
+
+lockBtn:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetText("Lock Frame")
+    GameTooltip:AddLine("Click to lock the spell buttons in place", 1, 1, 1, true)
+    GameTooltip:Show()
+end)
+lockBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+lockBtn:SetScript("OnClick", function()
+    -- Save current position before locking
+    local point, _, relPoint, x, y = DPSGenieButtonHolderFrame:GetPoint()
+    DPSGenie:SaveSettingToProfile("framePosition", { point = point, relPoint = relPoint, x = x, y = y })
+    DPSGenie:SaveSettingToProfile("frameLocked", true)
+    DPSGenie:ApplyFrameLockState()
+end)
+
+-- Save position on drag stop and reanchor the lock button
 DPSGenieButtonHolderFrame:SetScript("OnDragStart", DPSGenieButtonHolderFrame.StartMoving)
-DPSGenieButtonHolderFrame:SetScript("OnDragStop", DPSGenieButtonHolderFrame.StopMovingOrSizing)
-DPSGenieButtonHolderFrame:SetScript('OnEnter', function() 
-    DPSGenieButtonHolderFrame:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        tile = true,
-        tileSize = 16,
-        edgeSize = 16,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 }
-    })
-    DPSGenieButtonHolderFrame:SetBackdropColor(0, 0, 0, 0.7)
+DPSGenieButtonHolderFrame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    local point, _, relPoint, x, y = self:GetPoint()
+    DPSGenie:SaveSettingToProfile("framePosition", { point = point, relPoint = relPoint, x = x, y = y })
+    lockBtn:ClearAllPoints()
+    lockBtn:SetPoint("LEFT", DPSGenieButtonHolderFrame, "RIGHT", 4, 0)
 end)
-DPSGenieButtonHolderFrame:SetScript('OnLeave', function() 
-    DPSGenieButtonHolderFrame:SetBackdrop(nil)
-    DPSGenieButtonHolderFrame:SetBackdropColor(0, 0, 0, 1) 
-end)
+
+function DPSGenie:ApplyFrameLockState()
+    local locked = DPSGenie:LoadSettingFromProfile("frameLocked")
+    if locked then
+        DPSGenieButtonHolderFrame:SetMovable(false)
+        DPSGenieButtonHolderFrame:EnableMouse(false)
+        DPSGenieButtonHolderFrame:SetBackdrop(nil)
+        DPSGenieButtonHolderFrame:SetScript("OnEnter", nil)
+        DPSGenieButtonHolderFrame:SetScript("OnLeave", nil)
+        DPSGenieButtonHolderFrame:SetScript("OnDragStart", nil)
+        DPSGenieButtonHolderFrame:SetScript("OnDragStop", nil)
+        lockBtn:Hide()
+        holderLabel:Hide()
+    else
+        DPSGenieButtonHolderFrame:SetMovable(true)
+        DPSGenieButtonHolderFrame:EnableMouse(true)
+        DPSGenieButtonHolderFrame:RegisterForDrag("LeftButton")
+        -- Show border permanently while unlocked
+        DPSGenieButtonHolderFrame:SetBackdrop(holderBackdrop)
+        DPSGenieButtonHolderFrame:SetBackdropColor(0, 0, 0, 0.7)
+        DPSGenieButtonHolderFrame:SetScript("OnEnter", nil)
+        DPSGenieButtonHolderFrame:SetScript("OnLeave", nil)
+        DPSGenieButtonHolderFrame:SetScript("OnDragStart", DPSGenieButtonHolderFrame.StartMoving)
+        DPSGenieButtonHolderFrame:SetScript("OnDragStop", function(self)
+            self:StopMovingOrSizing()
+            local point, _, relPoint, x, y = self:GetPoint()
+            DPSGenie:SaveSettingToProfile("framePosition", { point = point, relPoint = relPoint, x = x, y = y })
+            lockBtn:ClearAllPoints()
+            lockBtn:SetPoint("LEFT", DPSGenieButtonHolderFrame, "RIGHT", 4, 0)
+        end)
+        lockBtn:Show()
+        holderLabel:Show()
+    end
+end
+
+-- Position restore and lock state are applied from OnEnable() (DB not ready at file load time)

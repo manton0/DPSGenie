@@ -506,10 +506,16 @@ function DPSGenie:runRotaTable()
         if _G["DPSGenieButtonHolderFrame"] then
             _G["DPSGenieButtonHolderFrame"]:Hide()
         end
+        if _G["DPSGenieLockButton"] then
+            _G["DPSGenieLockButton"]:Hide()
+        end
         return
     else
         if _G["DPSGenieButtonHolderFrame"] then
             _G["DPSGenieButtonHolderFrame"]:Show()
+        end
+        if _G["DPSGenieLockButton"] and not DPSGenie:LoadSettingFromProfile("frameLocked") then
+            _G["DPSGenieLockButton"]:Show()
         end
     end
 
@@ -750,6 +756,22 @@ function DPSGenie:OnEnable()
     local rota = DPSGenie:LoadSettingFromProfile("activeRota")
     if rota then
         DPSGenie:SetActiveRota(rota)
+    end
+
+    -- Restore frame position and apply lock state (DB is now ready)
+    local holder = _G["DPSGenieButtonHolderFrame"]
+    local lockButton = _G["DPSGenieLockButton"]
+    if holder then
+        local savedPos = DPSGenie:LoadSettingFromProfile("framePosition")
+        if savedPos then
+            holder:ClearAllPoints()
+            holder:SetPoint(savedPos.point, UIParent, savedPos.relPoint, savedPos.x, savedPos.y)
+            if lockButton then
+                lockButton:ClearAllPoints()
+                lockButton:SetPoint("LEFT", holder, "RIGHT", 4, 0)
+            end
+        end
+        DPSGenie:ApplyFrameLockState()
     end
 end
 

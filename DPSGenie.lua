@@ -54,6 +54,8 @@ local defaultSettings = {
         spellFlashType = "default",
         onlyInCombat = false,
         onlyWithTarget = false,
+        frameLocked = false,
+        framePosition = nil,
     }
 }
 

@@ -1116,6 +1116,23 @@ function DPSGenie:DrawSettingsPanel(container)
     addCheckbox("onlyInCombat", "Only Show in Combat", "Only show spell buttons while you are in combat")
     addCheckbox("onlyWithTarget", "Only Show with Target", "Only show spell buttons when you have a target selected")
 
+    -- Frame position settings
+    local frameHeader = AceGUI:Create("Heading")
+    frameHeader:SetFullWidth(true)
+    frameHeader:SetText("Frame Position")
+    groupScrollContainer:AddChild(frameHeader)
+
+    local lockCb = AceGUI:Create("CheckBox")
+    lockCb:SetFullWidth(true)
+    lockCb:SetLabel("Lock Spell Buttons")
+    lockCb:SetDescription("Lock the spell button frame in place and hide its border. Uncheck to reposition.")
+    lockCb:SetValue(DPSGenie:LoadSettingFromProfile("frameLocked") and true or false)
+    lockCb:SetCallback("OnValueChanged", function(widget, event, val)
+        DPSGenie:SaveSettingToProfile("frameLocked", val)
+        DPSGenie:ApplyFrameLockState()
+    end)
+    groupScrollContainer:AddChild(lockCb)
+
     container:AddChild(groupScrollContainer)
 end
 
