@@ -1628,6 +1628,16 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
             end
             customButtons = {}
 
+            local skipBaseChecksCheckbox = AceGUI:Create("CheckBox")
+            skipBaseChecksCheckbox:SetLabel("Skip Base Checks (no target required)")
+            skipBaseChecksCheckbox:SetValue(rotaData.spells[group].skipBaseChecks or false)
+            skipBaseChecksCheckbox:SetDisabled(readOnly)
+            skipBaseChecksCheckbox:SetCallback("OnValueChanged", function(widget, event, value)
+                rotaData.spells[group].skipBaseChecks = value
+                DPSGenie:SaveCustomRota(rotaTitle, customRotas[rotaTitle])
+            end)
+            self:AddChild(skipBaseChecksCheckbox)
+
              --containing frame for all the spells
             local labelRotaHeader = AceGUI:Create("SimpleGroup")
             labelRotaHeader:SetFullWidth(true)

@@ -489,7 +489,18 @@ function DPSGenie:runRotaTable()
         shouldHide = true
     end
     if DPSGenie:LoadSettingFromProfile("onlyWithTarget") and not UnitExists("target") then
-        shouldHide = true
+        local hasSkipGroup = false
+        if activeRota then
+            for _, group in pairs(activeRota.spells) do
+                if group.skipBaseChecks then
+                    hasSkipGroup = true
+                    break
+                end
+            end
+        end
+        if not hasSkipGroup then
+            shouldHide = true
+        end
     end
     if shouldHide then
         if _G["DPSGenieButtonHolderFrame"] then
@@ -510,6 +521,7 @@ function DPSGenie:runRotaTable()
             local success = false
             local fallbackSpell = nil
             local fallbackIconModifiers = nil
+            local skipBaseChecks = activeRota.spells[sindex].skipBaseChecks
             for index, value in ipairs(activeRota.spells[sindex]) do
                 local unit = "target"
 
@@ -539,6 +551,9 @@ function DPSGenie:runRotaTable()
 
                     DPSGenie:addToDebugTable("-------------------------------------------- " .. GetTime())
                     DPSGenie:addToDebugTable("Running checks for item " .. index .. " " .. actionName)
+                    if skipBaseChecks then
+                        DPSGenie:addToDebugTable("|cFF00CCFFSkip Base Checks: enabled|r")
+                    end
 
                     local itemCount = GetItemCount(itemID)
                     local isEquipped = IsEquippedItem(itemID)
@@ -557,9 +572,9 @@ function DPSGenie:runRotaTable()
                         DPSGenie:addToDebugTable("ItemReady: " .. DPSGenie:stateToColor(tostring(itemReady), "true"))
                         DPSGenie:addToDebugTable("ItemInRange: " .. DPSGenie:stateToColor((inRange or 0), 1))
 
-                        if itemReady and inRange ~= 0 then
+                        if itemReady and (skipBaseChecks or inRange ~= 0) then
                             basechecks = true
-                        elseif not itemReady and inRange ~= 0 and not fallbackSpell then
+                        elseif not itemReady and (skipBaseChecks or inRange ~= 0) and not fallbackSpell then
                             predictionCandidate = true
                         end
                     else
@@ -588,6 +603,9 @@ function DPSGenie:runRotaTable()
                             local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spell)
                             DPSGenie:addToDebugTable("-------------------------------------------- " .. GetTime())
                             DPSGenie:addToDebugTable("Running checks and conditions for spell " .. index .. " " .. name)
+                            if skipBaseChecks then
+                                DPSGenie:addToDebugTable("|cFF00CCFFSkip Base Checks: enabled|r")
+                            end
 
                             if IsHelpfulSpell(name) then
                                 DPSGenie:addToDebugTable("is helpful, override unit to player")
@@ -631,16 +649,15 @@ function DPSGenie:runRotaTable()
 
                             DPSGenie:addToDebugTable("SpellReady: " .. DPSGenie:stateToColor(tostring(spellReady), "true"))
 
-                            if usable and (spellInRange ~= 0 or DPSGenie:LoadSettingFromProfile("showOutOfRange")) and (spellReady or (maxCharges and maxCharges > 0 and currentCharges and currentCharges > 0)) then
-                                --may recheck this for buffs in combat?
-                                if (UnitCanAttack("player", unit) and IsHarmfulSpell(name)) or IsHelpfulSpell(name) then
+                            if usable and (skipBaseChecks or spellInRange ~= 0 or DPSGenie:LoadSettingFromProfile("showOutOfRange")) and (spellReady or (maxCharges and maxCharges > 0 and currentCharges and currentCharges > 0)) then
+                                if skipBaseChecks or (UnitCanAttack("player", unit) and IsHarmfulSpell(name)) or IsHelpfulSpell(name) then
                                     basechecks = true
                                 end
                             end
 
                             -- Prediction candidate: passes all checks except cooldown
-                            if not basechecks and usable and (spellInRange ~= 0 or DPSGenie:LoadSettingFromProfile("showOutOfRange")) and not fallbackSpell then
-                                if (UnitCanAttack("player", unit) and IsHarmfulSpell(name)) or IsHelpfulSpell(name) then
+                            if not basechecks and usable and (skipBaseChecks or spellInRange ~= 0 or DPSGenie:LoadSettingFromProfile("showOutOfRange")) and not fallbackSpell then
+                                if skipBaseChecks or (UnitCanAttack("player", unit) and IsHarmfulSpell(name)) or IsHelpfulSpell(name) then
                                     predictionCandidate = true
                                 end
                             end
@@ -654,7 +671,7 @@ function DPSGenie:runRotaTable()
                     DPSGenie:addToDebugTable("UnitIsDeadOrGhost: " .. DPSGenie:stateToColor((UnitIsDeadOrGhost("player") or 0), 0))
                     DPSGenie:addToDebugTable("UnitExists: " .. DPSGenie:stateToColor((UnitExists(unit) or 0), 1))
 
-                    if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) then
+                    if skipBaseChecks or (not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit)) then
                         local conditionsPassed = 0
                         --check all conditions
                         if value["conditions"] then
@@ -695,7 +712,7 @@ function DPSGenie:runRotaTable()
 
                 -- Prediction: evaluate conditions for spells/items on cooldown
                 if predictionCandidate and not fallbackSpell then
-                    if not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit) then
+                    if skipBaseChecks or (not UnitIsDead(unit) and not UnitIsDeadOrGhost("player") and GetUnitName(unit) and UnitExists(unit)) then
                         local conditionsPassed = 0
                         if value["conditions"] then
                             for cindex, condition in ipairs(value["conditions"]) do
