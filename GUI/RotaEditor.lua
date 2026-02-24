@@ -282,6 +282,10 @@ function DPSGenie:showConditionPicker(rotaTitle, group, rotaSpell)
                 capturedAuras = DPSGenie:getCapturedPlayerBuffs()
             elseif subject == "Debuffs" and baseCondition.unit == "Target" then
                 capturedAuras = DPSGenie:getCapturedTargetBuffs()
+            elseif subject == "Buffs" and baseCondition.unit == "Pet" then
+                capturedAuras = DPSGenie:getCapturedPetBuffs()
+            elseif subject == "Debuffs" and baseCondition.unit == "Pet" then
+                capturedAuras = DPSGenie:getCapturedPetDebuffs()
             end
             for id, name in pairs(capturedAuras) do mergedAuras[id] = name end
 

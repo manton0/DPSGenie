@@ -12,6 +12,8 @@ DPSGenie.buffList = DPSGenie.buffList or {}
 
 DPSGenie.playerBuffs = {}
 DPSGenie.targetBuffs = {}
+DPSGenie.petBuffs = {}
+DPSGenie.petDebuffs = {}
 
 
 local function tablelength(T)
@@ -34,6 +36,22 @@ end
 
 function DPSGenie:getCapturedTargetBuffsCount()
     return tablelength(DPSGenie.targetBuffs)
+end
+
+function DPSGenie:getCapturedPetBuffs()
+    return DPSGenie.petBuffs
+end
+
+function DPSGenie:getCapturedPetBuffsCount()
+    return tablelength(DPSGenie.petBuffs)
+end
+
+function DPSGenie:getCapturedPetDebuffs()
+    return DPSGenie.petDebuffs
+end
+
+function DPSGenie:getCapturedPetDebuffsCount()
+    return tablelength(DPSGenie.petDebuffs)
 end
 
 function DPSGenie:showCapture()
@@ -120,7 +138,7 @@ function DPSGenie:printBuffsToFrame()
     end
 
     for k, v in pairs(DPSGenie.targetBuffs) do
-        if not labelList[k] then  
+        if not labelList[k] then
             local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(k)
 
             local label = AceGUI:Create("InteractiveLabel")
@@ -128,17 +146,63 @@ function DPSGenie:printBuffsToFrame()
             label:SetImage(icon)
             label:SetImageSize(16, 16)
             label:SetText("\124cFFFF0000" .. k .. " - " .. v .. "\124r")
-            label:SetCallback("OnEnter", function(widget) 
-                GameTooltip:SetOwner(label.frame, "ANCHOR_CURSOR") -- Positioniere den Tooltip rechts vom Frame
-                GameTooltip:SetHyperlink("spell:" .. k) -- Setze den Spell-Link im Tooltip
+            label:SetCallback("OnEnter", function(widget)
+                GameTooltip:SetOwner(label.frame, "ANCHOR_CURSOR")
+                GameTooltip:SetHyperlink("spell:" .. k)
                 GameTooltip:Show()
             end)
-            label:SetCallback("OnLeave", function(widget) 
+            label:SetCallback("OnLeave", function(widget)
                 GameTooltip:Hide()
             end)
 
             buffScrollFrame:AddChild(label)
             labelList[k] = true
+        end
+    end
+
+    for k, v in pairs(DPSGenie.petBuffs) do
+        if not labelList["pb" .. k] then
+            local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(k)
+
+            local label = AceGUI:Create("InteractiveLabel")
+            label:SetWidth(300)
+            label:SetImage(icon)
+            label:SetImageSize(16, 16)
+            label:SetText("\124cFF00FFFF" .. k .. " - [Pet] " .. v .. "\124r")
+            label:SetCallback("OnEnter", function(widget)
+                GameTooltip:SetOwner(label.frame, "ANCHOR_CURSOR")
+                GameTooltip:SetHyperlink("spell:" .. k)
+                GameTooltip:Show()
+            end)
+            label:SetCallback("OnLeave", function(widget)
+                GameTooltip:Hide()
+            end)
+
+            buffScrollFrame:AddChild(label)
+            labelList["pb" .. k] = true
+        end
+    end
+
+    for k, v in pairs(DPSGenie.petDebuffs) do
+        if not labelList["pd" .. k] then
+            local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(k)
+
+            local label = AceGUI:Create("InteractiveLabel")
+            label:SetWidth(300)
+            label:SetImage(icon)
+            label:SetImageSize(16, 16)
+            label:SetText("\124cFFFF8800" .. k .. " - [Pet] " .. v .. "\124r")
+            label:SetCallback("OnEnter", function(widget)
+                GameTooltip:SetOwner(label.frame, "ANCHOR_CURSOR")
+                GameTooltip:SetHyperlink("spell:" .. k)
+                GameTooltip:Show()
+            end)
+            label:SetCallback("OnLeave", function(widget)
+                GameTooltip:Hide()
+            end)
+
+            buffScrollFrame:AddChild(label)
+            labelList["pd" .. k] = true
         end
     end
 end
@@ -152,11 +216,26 @@ function DPSGenie:UNIT_AURA(event, ...)
         end
     end
 
-    for i = 1, 99 do 
+    for i = 1, 99 do
         local name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID = UnitAura("target", i, "PLAYER|HARMFUL")
         if name then
-            --DPSGenie:Print("Target gained Buff: " .. name)
             DPSGenie.targetBuffs[spellID] = name
+        end
+    end
+
+    if UnitExists("pet") then
+        for i = 1, 99 do
+            local name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID = UnitAura("pet", i, "HELPFUL")
+            if name then
+                DPSGenie.petBuffs[spellID] = name
+            end
+        end
+
+        for i = 1, 99 do
+            local name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID = UnitAura("pet", i, "HARMFUL")
+            if name then
+                DPSGenie.petDebuffs[spellID] = name
+            end
         end
     end
 
