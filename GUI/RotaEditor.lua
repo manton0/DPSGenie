@@ -8,6 +8,8 @@ local Rotaframe, rotaTree
 local defaultRotas
 local customRotas
 local conditionPickerFrame, spellPickerFrame
+local rotaGroupScrollFrame = nil  -- reference to current rota scroll frame
+local rotaScrollValue = nil       -- saved scroll position for rota redraw
 
 DPSGenie.exportString = ""
 
@@ -1429,7 +1431,15 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
     end
 
     --group.rotaTitle = rotaTitle
- 
+
+    -- Save scroll position from previous scroll frame before rebuilding
+    if rotaGroupScrollFrame then
+        local status = rotaGroupScrollFrame.status or rotaGroupScrollFrame.localstatus
+        if status then
+            rotaScrollValue = status.scrollvalue
+        end
+    end
+
     -- Need to redraw again for when icon editbox/button are shown and hidden
     group:ReleaseChildren()
  
@@ -1444,12 +1454,13 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
  
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
     -- groupScrollFrame
- 
+
     local groupScrollFrame = AceGUI:Create("ScrollFrame")
     groupScrollFrame:SetFullWidth(true)
     groupScrollFrame:SetLayout("Flow")
     groupScrollContainer:AddChild(groupScrollFrame)
- 
+    rotaGroupScrollFrame = groupScrollFrame
+
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
     -- titleEditBox
 
@@ -1868,5 +1879,16 @@ function DPSGenie:DrawRotaGroup(group, rotaTitle, selected, tabindex)
     tab:SelectTab(tabindex)
     groupScrollFrame:AddChild(tab)
     tab:SelectTab(tabindex)
+
+    -- Restore scroll position after a redraw (deferred one frame so layout completes)
+    if rotaScrollValue then
+        local pending = rotaScrollValue
+        rotaScrollValue = nil
+        local restoreFrame = CreateFrame("Frame")
+        restoreFrame:SetScript("OnUpdate", function(self)
+            self:SetScript("OnUpdate", nil)
+            groupScrollFrame:SetScroll(pending)
+        end)
+    end
 
 end
